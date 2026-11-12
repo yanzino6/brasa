@@ -354,6 +354,10 @@ step 1200. Validation loss (held-out paraphrases): 0.18 at step 200, its minimum
   kernel.
 - Files: `model.i8.bin` 4,054,804 bytes (3,767,279 with brotli), `model.f16.bin` 7,956,044 bytes,
   `retrieval.json` 199,537 bytes (55,122 with brotli), `tokenizer.json` 30,570 bytes (9,028 with brotli).
+- Run-to-run noise: training on MPS is not bit-reproducible, and a second run of the same command on the
+  same code gave 47.7% (open-book) and 46.8% (closed-book) exact match on the held-out test split,
+  refusal precision 83.9%, refusal recall 66.7% and 605 of 608 int8 answers identical. Read differences
+  of a few points as noise; refusal recall is the least stable figure (53.8% against 66.7%).
 
 **What the rehearsal shows.** The model memorises every training question and answers a little under
 half of the held-out phrasings. The errors are not garbled text: of the 74 wrong answers to in-scope

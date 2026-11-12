@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
@@ -334,6 +335,49 @@ def training_context(record: QARecord, question: str, dataset: Dataset, retrieve
     return ctx
 
 
+# --------------------------------------------------------------------------------------- counterfactuals
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+# code-like names: PyTorch, UFES, VGG16, ResNet34 (CamelCase, ALL CAPS, letters with digits)
+_NAME = re.compile(r"\b(?:[A-Z][a-z]+[A-Z][A-Za-z0-9]*|[A-Z]{2,}[A-Za-z0-9-]*|[A-Za-z]+[0-9]+[A-Za-z0-9-]*)\b")
+
+
+def _number_like(s: str, rng: random.Random) -> str:
+    """Another number with the same shape: same digit count, same separators, no leading zero."""
+    out, first = [], True
+    for ch in s:
+        if ch.isdigit():
+            out.append(str(rng.randrange(1 if first else 0, 10)))
+            first = False
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def name_pool(dataset: Dataset) -> dict[str, list[str]]:
+    """Every code-like name that occurs in the knowledge base, per language."""
+    return {lang: sorted({m.group(0) for f in dataset.facts.values() for m in _NAME.finditer(f.text(lang))})
+            for lang in LANGS}
+
+
+def counterfactual(text: str, question: str, rng: random.Random, names: list[str]) -> str:
+    """The same sentence with other numbers and, sometimes, one other name: false on purpose.
+
+    Used only inside training contexts, with the answer rewritten in the same way. Since the values are
+    different in every example, the only way to get the answer right is to copy it from the context, which
+    is the behaviour wanted at inference time (where the context holds the true fact). Numbers and names
+    that the question itself mentions are left alone, so the question still points at this fact, and the
+    first word (usually the subject) is never replaced."""
+    q = strip_accents(question).lower()
+    out = _NUMBER.sub(lambda m: m.group(0) if m.group(0) in question else _number_like(m.group(0), rng), text)
+    candidates = [m for m in _NAME.finditer(out) if m.start() > 0 and strip_accents(m.group(0)).lower() not in q]
+    if candidates and names and (out == text or rng.random() < 0.5):
+        m = rng.choice(candidates)
+        other = rng.choice(names)
+        if other != m.group(0):
+            out = out[: m.start()] + other + out[m.end() :]
+    return out
+
+
 def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig, block_size: int,
                    seed: int = 0) -> tuple[list[Example], dict]:
     """Turn the QA records of a split into training examples. Deterministic for a given seed.
@@ -341,7 +385,8 @@ def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig
     Variant 0 of every record is the clean closed-book example and variant 1 the clean open-book example
     with the retriever's own context; the remaining variants are randomised."""
     examples: list[Example] = []
-    open_with_gold = gold_hits = 0
+    open_with_gold = gold_hits = n_counterfactual = 0
+    names = name_pool(dataset) if cfg.counterfactual_prob > 0 else {}
     for rec in dataset.split(split):
         for v in range(max(1, cfg.variants)):
             rng = random.Random(f"{seed}:{rec.id}:{v}")
@@ -357,7 +402,17 @@ def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig
                 gold_in = bool(rec.facts) and set(rec.facts) <= {i for i, _ in ctx}
                 open_with_gold += bool(rec.facts)
                 gold_hits += gold_in
-            ex = make_example(tok, question, rec.a, facts, block_size, cfg.prompt)
+            answer = rec.a
+            if (v >= 2 and gold_in and len(rec.facts) == 1 and cfg.counterfactual_prob > 0
+                    and rng.random() < cfg.counterfactual_prob):
+                gold = rec.facts[0]
+                original = dataset.facts[gold].text(rec.lang)
+                changed = counterfactual(original, question, rng, names[rec.lang]) if rec.a == original else original
+                if changed != original:
+                    facts = [changed if i == gold else text for i, text in ctx]
+                    answer = changed
+                    n_counterfactual += 1
+            ex = make_example(tok, question, answer, facts, block_size, cfg.prompt)
             ex.record, ex.open_book, ex.gold_in_context = rec.id, open_book, gold_in
             examples.append(ex)
     lengths = sorted(len(e.ids) for e in examples) or [0]
@@ -367,6 +422,7 @@ def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig
         "open_book": n_open,
         "closed_book": len(examples) - n_open,
         "open_book_gold_in_context": round(gold_hits / max(1, open_with_gold), 4),
+        "counterfactual": n_counterfactual,
         "tokens": sum(lengths),
         "answer_tokens": sum(len(e.ids) - e.answer_start for e in examples),
         "length_median": lengths[len(lengths) // 2],

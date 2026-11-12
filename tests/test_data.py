@@ -237,3 +237,36 @@ def test_question_noise(tok):
 def test_small_dataset_helper_is_valid(tmp_path):
     ds = load_dataset(small_dataset(tmp_path))
     assert len(ds.facts) == 6 and len(ds.split("test")) == 13
+
+
+def test_counterfactual_changes_numbers_and_keeps_shape():
+    import random
+
+    from brasa.data import counterfactual
+
+    rng = random.Random(7)
+    text = "O BreaKHis tem 7.909 imagens de 82 pacientes e usa PyTorch com VGG16."
+    out = counterfactual(text, "Quantas imagens tem o BreaKHis?", rng, ["Django", "ResNet34", "UFES"])
+    assert out != text
+    assert out.startswith("O BreaKHis tem ")  # the subject and the words stay
+    numbers = [n for n in __import__("re").findall(r"\d+(?:[.,]\d+)*", out)]
+    assert len(numbers) >= 2 and len(numbers[0]) == len("7.909") and "." in numbers[0]
+    assert "BreaKHis" in out  # named in the question, so never replaced
+
+
+def test_counterfactual_examples_copy_from_context(dataset, tok, retriever):
+    from brasa.config import DataConfig
+    from brasa.data import build_examples
+
+    base = dict(variants=6, open_book_prob=1.0, oracle_prob=1.0, drop_gold_prob=0.0)
+    examples, stats = build_examples(dataset, "train", tok, retriever, DataConfig(**base, counterfactual_prob=1.0),
+                                     block_size=384, seed=3)
+    assert stats["counterfactual"] > 0
+    plain, plain_stats = build_examples(dataset, "train", tok, retriever, DataConfig(**base), block_size=384, seed=3)
+    assert plain_stats["counterfactual"] == 0
+    changed = [a for a, b in zip(examples, plain, strict=True) if a.ids != b.ids]
+    assert changed, "counterfactual examples must differ from the plain ones"
+    for a in changed:
+        answer = tok.decode(a.ids[a.answer_start : -1])
+        prompt = tok.decode(a.ids[: a.answer_start])
+        assert answer in prompt  # the rewritten answer is present, verbatim, in the context

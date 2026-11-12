@@ -1,0 +1,30 @@
+{
+ "greeting": {
+  "pt": "Oi! Eu sou o Brasa, um modelo de linguagem pequeno treinado do zero para responder sobre o Yan Simmer. O que você quer saber?",
+  "en": "Hi! I am Brasa, a small language model trained from scratch to answer questions about Yan Simmer. What would you like to know?"
+ },
+ "thanks": {
+  "pt": "De nada! Se quiser, pergunte mais sobre o Yan.",
+  "en": "You're welcome! Ask me more about Yan if you like."
+ },
+ "bye": {
+  "pt": "Até mais! Obrigado pela visita.",
+  "en": "See you! Thanks for visiting."
+ },
+ "help": {
+  "pt": "Você pode perguntar sobre os projetos, a experiência, os estudos e as competências do Yan, ou sobre como eu, o Brasa, fui treinado.",
+  "en": "You can ask about Yan's projects, experience, studies and skills, or about how I, Brasa, was trained."
+ },
+ "identity": {
+  "pt": "Eu sou o Brasa, um modelo de linguagem pequeno, escrito e treinado do zero pelo Yan em PyTorch. Eu rodo aqui no seu navegador.",
+  "en": "I am Brasa, a small language model written and trained from scratch by Yan in PyTorch. I run right here in your browser."
+ },
+ "oos": {
+  "pt": "Isso eu não sei responder. Sou um modelo pequeno, treinado só para falar sobre o Yan Simmer: projetos, experiência, estudos e competências.",
+  "en": "I can't answer that. I am a small model trained only to talk about Yan Simmer: his projects, experience, studies and skills."
+ },
+ "unknown": {
+  "pt": "Essa informação sobre o Yan não está na minha base. Para saber, fale com o Yan pelo e-mail yansimmer@outlook.com.",
+  "en": "That information about Yan is not in my base. To find out, contact Yan by e-mail at yansimmer@outlook.com."
+ }
+}

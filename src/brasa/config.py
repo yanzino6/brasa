@@ -100,6 +100,9 @@ class DataConfig:
     drop_gold_prob: float = 0.15  # open-book: remove the gold facts (the retriever missed)
     shuffle_prob: float = 0.5  # open-book: shuffle the order of the facts
     random_distractor_prob: float = 0.25  # open-book: swap one non-gold fact for a random one
+    # open-book, gold fact in the context: rewrite its numbers and one of its names, in the context AND in
+    # the answer, so that the answer can only be produced by copying from the context (never from memory)
+    counterfactual_prob: float = 0.0
     prompt_loss_weight: float = 0.0  # loss weight of the non-answer tokens (0 = answer span only, 1 = all)
     prompt: PromptConfig = field(default_factory=PromptConfig)
 

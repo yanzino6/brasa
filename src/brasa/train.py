@@ -333,8 +333,11 @@ def parse_args(argv=None) -> TrainConfig:
     ap.add_argument("--prompt-loss-weight", type=float, default=dd.prompt_loss_weight,
                     help="loss weight of the non-answer tokens: 0 = answer span only, 1 = every token")
     ap.add_argument("--max-facts", type=int, default=pd.max_facts, help="facts shown in open-book mode")
+    ap.add_argument("--counterfactual-prob", type=float, default=dd.counterfactual_prob,
+                    help="open-book examples whose gold fact gets other numbers and names, in context and answer")
     a = ap.parse_args(argv)
     data = DataConfig(variants=a.variants, open_book_prob=a.open_book_prob, noise_prob=a.noise_prob,
+                      counterfactual_prob=a.counterfactual_prob,
                       prompt_loss_weight=a.prompt_loss_weight, prompt=PromptConfig(max_facts=a.max_facts))
     fields = {k: v for k, v in vars(a).items() if k in TrainConfig.__dataclass_fields__}
     return TrainConfig(**fields, data=data)
