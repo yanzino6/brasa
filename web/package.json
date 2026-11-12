@@ -1,0 +1,21 @@
+{
+  "name": "brasa-engine",
+  "version": "0.1.0",
+  "description": "Hand-written browser inference engine for the Brasa language model (no dependencies).",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": { "types": "./engine/index.d.ts", "default": "./engine/index.js" },
+    "./worker": "./engine/worker.js",
+    "./kernel.wasm": "./wasm/kernel.wasm"
+  },
+  "scripts": {
+    "test": "node --test --test-timeout=60000 engine/test/*.test.mjs",
+    "typecheck": "tsc -p engine/test/tsconfig.json",
+    "parity": "node engine/tools/parity.mjs",
+    "bench": "node engine/tools/bench.mjs",
+    "build:wasm": "sh wasm/build.sh"
+  },
+  "engines": { "node": ">=20" }
+}

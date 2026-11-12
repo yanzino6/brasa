@@ -1,0 +1,111 @@
+{
+ "_about": "Template of model-card.json, the machine-readable card of a Brasa release. Do not fill it by hand: `brasa.evaluate`, `brasa.export` and `brasa.export_onnx` write every section when called with --model-card model-card.json (see README, 'Reproduce'). null marks a value that only exists after the real corpus has been trained on. scripts/render_model_card.py turns the filled file into the Hugging Face model card.",
+ "schema_version": 1,
+ "name": null,
+ "model": {
+  "_about": "GPTConfig of the checkpoint plus the parameter count (written by brasa.evaluate from run.json).",
+  "vocab_size": null,
+  "block_size": 384,
+  "n_layer": null,
+  "n_head": null,
+  "d_model": null,
+  "mlp": "swiglu",
+  "mlp_hidden": null,
+  "dropout": null,
+  "rope_base": 10000.0,
+  "norm_eps": 1e-06,
+  "params": null
+ },
+ "tokenizer": {
+  "type": "byte-level BPE",
+  "vocab_size": null,
+  "merges": null,
+  "requested": 4096
+ },
+ "training": {
+  "_about": "Settings and measurements of the training run.",
+  "steps": null,
+  "batch_tokens": null,
+  "lr": null,
+  "warmup": null,
+  "min_lr_ratio": null,
+  "weight_decay": null,
+  "dropout": null,
+  "grad_clip": null,
+  "betas": [null, null],
+  "seed": null,
+  "device": null,
+  "compile": null,
+  "amp": null,
+  "torch": null,
+  "train_seconds": null,
+  "tokens_per_second": null,
+  "tokens_seen": null,
+  "epochs_equivalent": null,
+  "best_val_loss": null,
+  "final_val": {"step": null, "val_loss": null, "val_loss_open": null, "val_loss_closed": null},
+  "data_config": {
+   "variants": null,
+   "open_book_prob": null,
+   "noise_prob": null,
+   "oracle_prob": null,
+   "drop_gold_prob": null,
+   "shuffle_prob": null,
+   "random_distractor_prob": null,
+   "prompt_loss_weight": null,
+   "prompt": {"max_question_tokens": null, "answer_reserve": null, "max_facts": null}
+  }
+ },
+ "data": {
+  "_about": "Statistics of the data directory. `corpus` is the optional corpus.json of the directory; a rehearsal corpus carries \"fictional\": true.",
+  "corpus": {},
+  "dir": null,
+  "facts": null,
+  "topics": null,
+  "qa": null,
+  "splits": {
+   "train": {"n": null, "by_lang": {}, "by_kind": {}},
+   "val": {"n": null, "by_lang": {}, "by_kind": {}},
+   "test": {"n": null, "by_lang": {}, "by_kind": {}}
+  },
+  "train_questions_per_fact_and_lang": {"min": null, "median": null, "max": null},
+  "training_examples": {
+   "examples": null,
+   "open_book": null,
+   "closed_book": null,
+   "open_book_gold_in_context": null,
+   "tokens": null,
+   "answer_tokens": null,
+   "length_median": null,
+   "length_p95": null,
+   "length_max": null
+  }
+ },
+ "evaluation": {
+  "_about": "One entry per weight format: float32 (the checkpoint, written by brasa.evaluate), float16 and int8 (the exported weights, written by brasa.export). `headline[mode][seen|val|test]` holds n, em, f1, in_scope_em, in_scope_f1, key_span_recall, refusal_precision, refusal_recall, language_consistency, unsupported_number_rate and, open-book only, retrieval_hit, em_when_gold_retrieved, em_when_gold_missed. `full[mode][split]` holds the same metrics as overall / by_lang / by_kind / by_topic / by_retrieval.",
+  "float32": {"checkpoint": null, "seconds": null, "headline": {"open_book": {}, "closed_book": {}}, "full": {}},
+  "float16": {"headline": {}, "full": {}, "answers_identical_to_float32": null, "changed_examples": []},
+  "int8": {"headline": {}, "full": {}, "answers_identical_to_float32": null, "changed_examples": []}
+ },
+ "files": {
+  "_about": "Size report of the export directory: bytes, gzip -9, brotli -11 and SHA-256 of every file.",
+  "directory": null,
+  "model.i8.bin": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
+  "model.f16.bin": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
+  "tokenizer.json": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
+  "retrieval.json": {"bytes": null, "gzip": null, "brotli": null, "sha256": null}
+ },
+ "quantisation": {
+  "_about": "Weight and logit error of each exported format against the float32 checkpoint.",
+  "f16": {"mean_relative_weight_rmse": null, "max_abs_logit_drift_vs_float32": null, "greedy_identical_to_float32": null},
+  "i8": {"mean_relative_weight_rmse": null, "max_abs_logit_drift_vs_float32": null, "greedy_identical_to_float32": null}
+ },
+ "onnx": {
+  "_about": "Optional, written by brasa.export_onnx.",
+  "directory": null,
+  "files": {},
+  "parity": {"ok": null, "max_abs_logit_diff": {}, "greedy_identical": {}},
+  "exporters": {}
+ },
+ "updated_at": null
+}

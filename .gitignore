@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Training runs, checkpoints and exports: heavy and reproducible (see README, "Reproduce")
+runs/
+*.pt
+*.onnx
+data/cache/
+
+# The released model card is model-card.json; cards of individual runs live inside runs/
+
+# JavaScript
+web/node_modules/
+*.tsbuildinfo
+
+# Secrets and local settings
+.env*
+!.env.example
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

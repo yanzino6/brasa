@@ -1,0 +1,93 @@
+[
+ {
+  "slug": "profile",
+  "type": "person",
+  "title_pt": "Perfil",
+  "title_en": "Profile",
+  "aliases": [
+   "Téo Arantes"
+  ]
+ },
+ {
+  "slug": "career",
+  "type": "experience",
+  "title_pt": "Carreira",
+  "title_en": "Career",
+  "aliases": [
+   "Lumen Forge",
+   "Brisa Logistics"
+  ]
+ },
+ {
+  "slug": "skills",
+  "type": "skill",
+  "title_pt": "Habilidades",
+  "title_en": "Skills",
+  "aliases": [
+   "stack"
+  ]
+ },
+ {
+  "slug": "sentinela",
+  "type": "project",
+  "title_pt": "Sentinela",
+  "title_en": "Sentinela",
+  "aliases": [
+   "fintech",
+   "fraude",
+   "fraud"
+  ]
+ },
+ {
+  "slug": "notaclara",
+  "type": "project",
+  "title_pt": "NotaClara",
+  "title_en": "NotaClara",
+  "aliases": [
+   "OCR",
+   "notas fiscais",
+   "invoices"
+  ]
+ },
+ {
+  "slug": "tessela",
+  "type": "project",
+  "title_pt": "Tessela",
+  "title_en": "Tessela",
+  "aliases": [
+   "código aberto",
+   "open source"
+  ]
+ },
+ {
+  "slug": "services",
+  "type": "service",
+  "title_pt": "Serviços",
+  "title_en": "Services",
+  "aliases": [
+   "consultoria",
+   "consulting"
+  ]
+ },
+ {
+  "slug": "contact",
+  "type": "contact",
+  "title_pt": "Contato",
+  "title_en": "Contact",
+  "aliases": [
+   "e-mail",
+   "email"
+  ]
+ },
+ {
+  "slug": "assistant",
+  "type": "meta",
+  "title_pt": "Este assistente",
+  "title_en": "This assistant",
+  "aliases": [
+   "chatbot",
+   "modelo",
+   "model"
+  ]
+ }
+]

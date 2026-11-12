@@ -1,0 +1,46 @@
+[project]
+name = "brasa"
+version = "0.1.0"
+description = "Brasa: a small GPT-style language model written and trained from scratch in PyTorch, with a hand-written browser inference engine."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Yan Simmer" }]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.0",
+    "torch>=2.6",
+]
+
+[project.optional-dependencies]
+# Only needed for the interoperability export (python -m brasa.export_onnx).
+onnx = ["onnx>=1.17", "onnxruntime>=1.20", "onnxscript>=0.2"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/brasa"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["runs", "web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "SIM108", # if/else blocks are often clearer than a ternary
+    "SIM300", # tensor dimensions are upper-case by convention (B, T, P): "P + T > block_size" is not a Yoda condition
+    "SIM905", # "a b c".split() keeps the stop-word lists readable
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/rehearsal_persona*.py" = ["E501"]

@@ -1,0 +1,7 @@
+{
+ "name": "rehearsal",
+ "fictional": true,
+ "training_paraphrases_per_fact_and_language": 11,
+ "seed": 1234,
+ "description": "Invented persona (Téo Arantes does not exist) used to rehearse the pipeline. Nothing measured on it is a result of the released model."
+}
