@@ -1,0 +1,144 @@
+{
+ "items": [
+  {
+   "f": "crm-045",
+   "pt": [
+    "Quais critérios avaliam a coerência do desenho de acesso do SmartSide CRM?",
+    "Como avaliar a consistência da autorização no SmartSide CRM?",
+    "O que revisar para julgar o desenho de acesso do SmartSide CRM?",
+    "Me conta os pontos centrais da avaliação de acesso do SmartSide CRM.",
+    "Qual checklist orienta a análise de coerência das permissões do SmartSide CRM?",
+    "Queria saber como examinar a consistência do modelo de acesso do SmartSide CRM.",
+    "Yan, quais critérios você usaria para avaliar o desenho de acesso do SmartSide CRM?",
+    "Na avaliação de acesso do SmartSide CRM, o que merece atenção principal?",
+    "Explique os aspectos fundamentais para revisar a autorização do SmartSide CRM.",
+    "Como você avaliaria a coerência das regras de acesso no SmartSide CRM, Yan?",
+    "Critérios de revisão do desenho de acesso do SmartSide CRM?",
+    "Por onde começar uma auditoria para conferir se a proteção do SmartSide CRM faz sentido?",
+    "Uma inspeção da segurança de acesso do SmartSide CRM deveria priorizar quais verificações?",
+    "Pra conferir se o SmartSide CRM restringe acessos de maneira consistente, quais seriam os principais alvos da checagem?"
+   ],
+   "en": [
+    "What criteria matter most when evaluating SmartSide CRM's access design?",
+    "How should someone assess the consistency of authorization in SmartSide CRM?",
+    "Explain the key checkpoints for reviewing access control consistency in SmartSide CRM.",
+    "Which aspects deserve attention in a SmartSide CRM access design review?",
+    "I'd like to understand the criteria behind evaluating SmartSide CRM's authorization model.",
+    "Yan, what would you examine to assess access design consistency in SmartSide CRM?",
+    "Give me the main considerations for evaluating SmartSide CRM's access rules.",
+    "What's the checklist for assessing the coherence of SmartSide CRM's access design?",
+    "When reviewing SmartSide CRM authorization, which criteria are central?",
+    "Yan, how would you judge whether SmartSide CRM's access design is consistent?",
+    "Outline the priorities for a consistency review of SmartSide CRM's access controls.",
+    "Where should an auditor focus to check whether SmartSide CRM's access protection holds together?",
+    "Suppose someone inspects SmartSide CRM's security boundaries: what should underpin that inspection?",
+    "To test whether SmartSide CRM restricts access coherently, which checks belong at the core?"
+   ]
+  },
+  {
+   "f": "crm-046",
+   "pt": [
+    "Onde posso consultar o código-fonte do SmartSide CRM?",
+    "Como faço para acessar o repositório do SmartSide CRM?",
+    "Queria ver a implementação do SmartSide CRM; onde encontro o código?",
+    "Me passa o link do código-fonte do SmartSide CRM.",
+    "Qual é a disponibilidade do código do SmartSide CRM para visitantes?",
+    "Por que não encontro o código-fonte do SmartSide CRM no portfólio?",
+    "Yan, onde você disponibiliza o código do SmartSide CRM?",
+    "Estou procurando o repositório do SmartSide CRM para ler a implementação.",
+    "Como funciona o acesso ao código-fonte do SmartSide CRM?",
+    "Yan, você pode explicar onde fica o código do SmartSide CRM?",
+    "Código do SmartSide CRM: onde procurar?",
+    "Um recrutador consegue abrir os arquivos de implementação do SmartSide CRM pela internet?",
+    "Pra inspecionar os fontes do SmartSide CRM, qual barreira um visitante encontra?",
+    "Ao tentar conferir como o SmartSide CRM foi programado, por que falta um endereço acessível?"
+   ],
+   "en": [
+    "Where can I find the source code for SmartSide CRM?",
+    "How do I access the SmartSide CRM repository?",
+    "I'd like to read SmartSide CRM's implementation; where should I look?",
+    "Share the source code link for SmartSide CRM.",
+    "What access do portfolio visitors have to SmartSide CRM's code?",
+    "Why can't I find a source link for SmartSide CRM?",
+    "Yan, where do you keep the SmartSide CRM code?",
+    "Explain how access to the SmartSide CRM repository works.",
+    "I'm looking for SmartSide CRM's source files to review.",
+    "What's the availability of SmartSide CRM's source code?",
+    "Yan, how can I view the code behind your SmartSide CRM work?",
+    "Could a recruiter browse SmartSide CRM's implementation online?",
+    "For someone hoping to inspect SmartSide CRM's internals, what prevents an outside look?",
+    "A portfolio visitor wants to examine how SmartSide CRM was programmed; why is there no accessible address?"
+   ]
+  },
+  {
+   "f": "crm-047",
+   "pt": [
+    "Quais métricas de negócio estão documentadas para o SmartSide CRM?",
+    "Como o impacto comercial do SmartSide CRM foi quantificado?",
+    "Queria saber quais resultados financeiros do SmartSide CRM têm comprovação.",
+    "Me mostra os indicadores de desempenho comercial registrados para o SmartSide CRM.",
+    "Que evidências mensuráveis existem sobre o retorno de negócio do SmartSide CRM?",
+    "Yan, quais resultados de negócio você consegue comprovar no SmartSide CRM?",
+    "Onde estão os dados que quantificam os ganhos comerciais do SmartSide CRM?",
+    "Explique o que está documentado sobre o impacto econômico do SmartSide CRM.",
+    "Qual é a base quantitativa para avaliar os resultados de negócio do SmartSide CRM?",
+    "Indicadores de impacto comercial do SmartSide CRM?",
+    "Yan, como você sustenta numericamente o retorno comercial do SmartSide CRM?",
+    "Se alguém pedir prova de benefício empresarial do SmartSide CRM, o que pode ser apresentado?",
+    "Pra justificar o valor do SmartSide CRM com estatísticas de desempenho empresarial, que material existe?",
+    "Uma análise dos efeitos do SmartSide CRM nos negócios teria quais medições disponíveis?"
+   ],
+   "en": [
+    "What business metrics are documented for SmartSide CRM?",
+    "How has SmartSide CRM's commercial impact been quantified?",
+    "I'd like to see evidence of SmartSide CRM's financial results.",
+    "Show me the recorded business performance indicators for SmartSide CRM.",
+    "Which measurable business outcomes can be substantiated for SmartSide CRM?",
+    "Yan, what commercial results can you back up from SmartSide CRM?",
+    "Where are the figures supporting SmartSide CRM's business impact?",
+    "Explain the documentation available on SmartSide CRM's economic benefits.",
+    "What quantitative basis supports claims about SmartSide CRM's business results?",
+    "SmartSide CRM commercial performance metrics?",
+    "Yan, how do you substantiate the business value of your SmartSide CRM work numerically?",
+    "If a recruiter requested proof of enterprise benefits from SmartSide CRM, what could be presented?",
+    "For a business case about SmartSide CRM, which measured achievements are available?",
+    "An assessment of SmartSide CRM's effect on business performance would have what statistics to draw on?"
+   ]
+  },
+  {
+   "f": "crm-048",
+   "pt": [
+    "Quais números de uso e tamanho de equipe estão documentados para o SmartSide CRM?",
+    "Como saber a escala de utilização do SmartSide CRM e quantas pessoas participaram da equipe?",
+    "Queria conhecer o volume de uso registrado do SmartSide CRM e o tamanho do time.",
+    "Me conta os dados disponíveis sobre adoção e equipe do SmartSide CRM.",
+    "Que informações quantitativas existem sobre utilização e pessoal no SmartSide CRM?",
+    "Yan, quais números de uso e equipe você pode informar sobre o SmartSide CRM?",
+    "Onde encontro estatísticas de utilização e dimensão da equipe do SmartSide CRM?",
+    "Explique o que foi documentado sobre escala de uso e tamanho da equipe do SmartSide CRM.",
+    "Qual é a disponibilidade de dados sobre adoção e composição numérica do time do SmartSide CRM?",
+    "SmartSide CRM: volume de utilização e tamanho do time?",
+    "Yan, o que você sabe em números sobre a utilização e a equipe do SmartSide CRM?",
+    "Ao dimensionar a base atendida pelo SmartSide CRM e o quadro de pessoal, quais contagens podemos citar?",
+    "Pra apresentar o alcance operacional do SmartSide CRM e quantificar quem o construiu, que registros existem?",
+    "Um panorama da movimentação do SmartSide CRM e da quantidade de colaboradores teria quais totais verificáveis?"
+   ],
+   "en": [
+    "What usage figures and team size are documented for SmartSide CRM?",
+    "How much is known about SmartSide CRM's usage scale and staffing numbers?",
+    "I'd like the recorded adoption figures and team size for SmartSide CRM.",
+    "Show me the available data on SmartSide CRM utilization and team headcount.",
+    "Which quantitative details exist about SmartSide CRM's usage and development team size?",
+    "Yan, what usage and team numbers can you share for SmartSide CRM?",
+    "Where can I find SmartSide CRM usage statistics and team size information?",
+    "Explain what's documented about SmartSide CRM's operational scale and team headcount.",
+    "What data is available on SmartSide CRM adoption and the number of people on the team?",
+    "SmartSide CRM utilization figures and team size?",
+    "Yan, how much can you tell us numerically about SmartSide CRM's usage and team?",
+    "For a profile of SmartSide CRM's reach and workforce, which counts could someone cite?",
+    "Suppose a recruiter asks how widely SmartSide CRM was used and how many people built it: what's established?",
+    "A summary of SmartSide CRM's activity levels and personnel would have which verified totals to draw from?"
+   ]
+  }
+ ]
+}

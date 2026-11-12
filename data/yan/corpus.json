@@ -1,0 +1,37 @@
+{
+ "name": "yan",
+ "fictional": false,
+ "description": "Questions about Yan Simmer written by an LLM teacher from a curated public knowledge base; answers are the curated facts. Held-out validation and test questions use phrasings that never occur in training.",
+ "training_paraphrases_per_fact_and_language": 11,
+ "build": {
+  "facts_in_kb": 525,
+  "facts_without_questions": 68,
+  "first_missing": [
+   "esp32-cam-car-001",
+   "esp32-cam-car-002",
+   "esp32-cam-car-003",
+   "esp32-cam-car-004",
+   "esp32-cam-car-005",
+   "esp32-cam-car-006",
+   "esp32-cam-car-007",
+   "esp32-cam-car-008",
+   "esp32-cam-car-009",
+   "esp32-cam-car-010"
+  ],
+  "k": 11,
+  "dropped": {},
+  "records": {
+   "facts": 22850,
+   "multi": 224
+  },
+  "splits": {
+   "train": 20300,
+   "val": 930,
+   "test": 1844
+  },
+  "by_kind": {
+   "single": 22850,
+   "multi": 224
+  }
+ }
+}
