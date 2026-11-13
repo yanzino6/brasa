@@ -1,0 +1,85 @@
+{
+ "items": [
+  {
+   "id": "multi-evidence-limits",
+   "facts": [
+    "boundaries-012",
+    "boundaries-005"
+   ],
+   "pt": [
+    "Como o portfólio de Yan diferencia evidências e limita conclusões sobre senioridade?",
+    "Me conta como avaliar a participação de Yan e o nível profissional pelo portfólio.",
+    "Evidências de contribuição e senioridade de Yan: o que dá pra concluir?",
+    "Queria saber como seu portfólio comprova participação e aborda senioridade, Yan.",
+    "Qual é o critério do portfólio de Yan para distinguir evidências e discutir nível profissional?",
+    "Explique os limites de avaliar contribuições e senioridade de Yan pelos repositórios.",
+    "Até onde os registros apresentados permitem atribuir trabalho e classificar Yan profissionalmente?",
+    "Ao analisar Yan para uma vaga, como interpretar os indícios de autoria e enquadrar a experiência?"
+   ],
+   "en": [
+    "How does Yan's portfolio distinguish evidence and handle seniority claims?",
+    "Explain what Yan's contribution records establish and whether they determine professional level.",
+    "Yan, what does your portfolio count as evidence, and how does that relate to seniority?",
+    "I'm wondering how to assess Yan's involvement and career level from the portfolio.",
+    "Yan's portfolio: contribution evidence and seniority assessment?",
+    "What limits apply when evaluating Yan's participation and professional level through repository activity?",
+    "Can I rank Yan professionally from the portfolio, and how should I interpret the supporting material?",
+    "Walk me through judging authorship and experience when reviewing Yan for a role."
+   ]
+  },
+  {
+   "id": "multi-hiring-status",
+   "facts": [
+    "boundaries-001",
+    "boundaries-002"
+   ],
+   "pt": [
+    "Como confirmo a disponibilidade, a pretensão salarial e a ocupação atual de Yan?",
+    "Queria saber se Yan está trabalhando e quanto espera receber para aceitar uma vaga.",
+    "Me orienta sobre onde consultar a situação profissional atual e a disponibilidade de Yan.",
+    "Yan, qual é sua pretensão salarial e até quando vai seu histórico profissional publicado?",
+    "O que o portfólio informa sobre disponibilidade para contratação e emprego atual de Yan?",
+    "Situação de trabalho e expectativa de remuneração de Yan: onde verificar?",
+    "Antes de fazer uma proposta a Yan, como descubro quando poderia começar e a função que exerce hoje?",
+    "Para recrutar Yan, com quem esclareço o valor desejado e o vínculo profissional vigente?"
+   ],
+   "en": [
+    "Where can I confirm Yan's availability, salary expectations, and current occupation?",
+    "I'm considering Yan for a role; what does the portfolio establish about employment status and availability?",
+    "Tell me how to check Yan's current work situation and expected pay.",
+    "Yan, what salary are you seeking, and how recent is your published employment history?",
+    "Current occupation and hiring availability for Yan: where should I check?",
+    "How can a recruiter clarify whether Yan is working now and available for a new position?",
+    "Before approaching Yan with an offer, who can clarify compensation requirements and present professional commitments?",
+    "Does Yan have a job today, and when could Yan join our team?"
+   ]
+  },
+  {
+   "id": "multi-personal-contact",
+   "facts": [
+    "boundaries-003",
+    "boundaries-004"
+   ],
+   "pt": [
+    "Quais dados pessoais e meios de contato o assistente do portfólio de Yan pode fornecer?",
+    "Queria saber a idade de Yan e como entrar em contato.",
+    "Me conta o que aparece sobre a vida pessoal de Yan e onde posso falar com Yan.",
+    "Yan, onde encontro seu estado civil e um canal para conversar com você?",
+    "Informações pessoais e contato de Yan: o que está disponível no portfólio?",
+    "Como o portfólio de Yan aborda vida privada e formas de comunicação?",
+    "Onde procuro detalhes biográficos de Yan fora da carreira e um caminho para mandar uma mensagem?",
+    "Ao visitar a página de Yan, consigo descobrir a situação conjugal e por onde iniciar uma conversa?"
+   ],
+   "en": [
+    "What personal details and contact options can Yan's portfolio assistant provide?",
+    "I'm curious about Yan's age and how to get in touch.",
+    "Tell me what Yan shares about private life and where I can reach Yan.",
+    "Yan, where can I find your marital status and a way to contact you?",
+    "Personal information and communication channels for Yan: what's available?",
+    "How does Yan's portfolio handle private details and requests to connect?",
+    "Could I learn about Yan beyond work and studies, and where should I send a message?",
+    "Walk me through finding Yan's relationship status and starting a conversation with Yan."
+   ]
+  }
+ ]
+}

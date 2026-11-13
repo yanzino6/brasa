@@ -220,6 +220,24 @@ export function chooseToken(logits, { temperature = 0, topK = 0, topP = 1, repet
   return sampleFrom(filterLogits(logits, { temperature, topK, topP, repetitionPenalty }, previous), random);
 }
 
+/**
+ * Choose among the tokens a constraint allows (ascending ids). Greedy takes the largest logit, ties to
+ * the lower id, exactly like constrained_answers() in src/brasa/constrain.py; with a temperature the
+ * other tokens are masked out and the usual sampling filters apply to what is left.
+ * bias (one number per allowed token, in nats: AnswerTrie.bias) is added to the logits first.
+ */
+export function chooseAllowed(logits, allowed, opts = {}, previous = null, bias = null) {
+  const at = bias ? (i) => logits[allowed[i]] + bias[i] : (i) => logits[allowed[i]];
+  let best = allowed[0], bv = at(0);
+  for (let i = 1; i < allowed.length; i++) { const v = at(i); if (v > bv) { bv = v; best = allowed[i]; } }
+  const { temperature = 0, repetitionPenalty = 1 } = opts;
+  if (temperature <= 0 && (repetitionPenalty === 1 || !previous || !previous.length)) return best;
+  const masked = new Float32Array(logits.length).fill(-Infinity);
+  for (let i = 0; i < allowed.length; i++) masked[allowed[i]] = at(i);
+  const token = chooseToken(masked, opts, previous);
+  return masked[token] === -Infinity ? best : token;
+}
+
 // ------------------------------------------------------------------------------------------ engine
 
 const SCRATCH = ['kOff', 'vOff', 'x', 'h', 'qkv', 'att', 'y', 'g', 'u', 'scores', 'logitsOff'];
@@ -489,6 +507,42 @@ export class Engine {
   }
 
   /**
+   * The model read as an encoder: one unit vector for a token sequence, pooled from the final hidden states
+   * (after the last RMSNorm, before the output head) exactly as src/brasa/encoder.py does. 'mean' averages
+   * every position, 'last' takes the final one. The dense half of the retrieval index compares this vector
+   * of a question with the precomputed vectors of the facts. The context is overwritten: the next feed()
+   * starts from an empty cache.
+   * @param {ArrayLike<number>} tokens
+   * @param {'mean'|'last'} [pooling='mean']
+   * @returns {Float32Array} d_model values, L2 norm 1
+   */
+  embed(tokens, pooling = 'mean') {
+    if (!tokens.length) throw new Error('nothing to embed');
+    if (tokens.length > this.contextLength) {
+      throw new Error(`sequence of ${tokens.length} tokens exceeds the context length ${this.contextLength}`);
+    }
+    if (pooling !== 'mean' && pooling !== 'last') throw new Error(`unknown pooling: ${pooling}`);
+    const { heap, d, x, h } = this, gain = this.t['norm_f.weight'];
+    const sum = new Float64Array(d);
+    this.position = 0;
+    for (let i = 0; i < tokens.length; i++) {
+      this.step(tokens[i], false);
+      if (pooling === 'mean' || i === tokens.length - 1) {
+        this._rmsnorm(x, h, gain);
+        for (let j = 0; j < d; j++) sum[j] += heap[h + j];
+      }
+    }
+    this.position = this.reusedTokens = 0;   // the cache holds the embedded text, not a prompt: start over
+    this._captured = false;
+    let ss = 0;
+    for (let j = 0; j < d; j++) ss += sum[j] * sum[j];
+    const inv = 1 / Math.max(Math.sqrt(ss), 1e-12);
+    const out = new Float32Array(d);
+    for (let j = 0; j < d; j++) out[j] = sum[j] * inv;
+    return out;
+  }
+
+  /**
    * Generate token by token. Yields { index, token, stop } for every new token, plus what `inspect` asks:
    *   inspect.top: k      -> top: [{ id, prob, logit }]  the model's k most likely tokens at this step
    *                          prob: probability the model gave to the chosen token
@@ -496,17 +550,35 @@ export class Engine {
    *   inspect.norms       -> norms: see residualNorms()
    * The generator returns 'stop' (a stop token was produced) or 'length' (the budget or the context ran out).
    * The repetition penalty looks at the generated tokens only, never at the prompt.
+   *
+   * opts.constraint (an AnswerTrie of retrieval.js, or anything with eos, start(), allowed(state) and
+   * advance(state, token)) restricts every step to the tokens it allows and stops at its eos. Each step
+   * then carries `choices`, the number of allowed tokens: 1 means the token was forced, and a forced
+   * token is fed without computing the output head unless `inspect` needs the distribution. A constraint
+   * with `hasPrior` and bias(state) (the retriever's ranking as a prior) has that bias added to the logits
+   * of the allowed tokens before the choice.
    */
   *stream(promptTokens, opts = {}) {
-    const { maxNewTokens = 128, stopTokens = [], inspect = null } = opts;
+    const { maxNewTokens = 128, stopTokens = [], inspect = null, constraint = null } = opts;
     const stops = new Set(stopTokens);
+    if (constraint) stops.add(constraint.eos);
     this.setCapture({ attention: !!(inspect && inspect.attention), norms: !!(inspect && inspect.norms) });
     let logits = this.feed(promptTokens);
     const budget = Math.min(maxNewTokens, this.contextLength - promptTokens.length);
     const generated = [];
+    let state = constraint ? constraint.start() : null;
     for (let i = 0; i < budget; i++) {
-      const token = chooseToken(logits, opts, generated);
+      let token, allowed = null;
+      if (constraint) {
+        allowed = constraint.allowed(state);
+        if (!allowed.length) return 'stop';
+        token = allowed.length === 1 ? allowed[0]
+          : chooseAllowed(logits, allowed, opts, generated, constraint.hasPrior ? constraint.bias(state) : null);
+      } else {
+        token = chooseToken(logits, opts, generated);
+      }
       const step = { index: i, token, stop: stops.has(token) };
+      if (allowed) step.choices = allowed.length;
       if (inspect) {
         if (inspect.top) step.top = topTokens(logits, inspect.top);
         step.prob = probabilityOf(logits, token);
@@ -516,7 +588,13 @@ export class Engine {
       generated.push(token);
       yield step;
       if (step.stop) return 'stop';
-      if (i + 1 < budget) logits = this.step(token, true);
+      if (i + 1 >= budget) break;
+      if (constraint) {
+        state = constraint.advance(state, token);
+        logits = this.step(token, !!inspect || constraint.allowed(state).length !== 1);
+      } else {
+        logits = this.step(token, true);
+      }
     }
     return 'length';
   }

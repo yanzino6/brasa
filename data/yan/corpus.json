@@ -1,37 +1,36 @@
 {
  "name": "yan",
  "fictional": false,
- "description": "Questions about Yan Simmer written by an LLM teacher from a curated public knowledge base; answers are the curated facts. Held-out validation and test questions use phrasings that never occur in training.",
+ "description": "Questions about Yan Simmer written by an LLM teacher from a curated public knowledge base; answers are the curated facts. Held-out validation, test and final questions use phrasings that never occur in training; the final split is read once, for the released model.",
  "training_paraphrases_per_fact_and_language": 11,
  "build": {
   "facts_in_kb": 525,
-  "facts_without_questions": 68,
-  "first_missing": [
-   "esp32-cam-car-001",
-   "esp32-cam-car-002",
-   "esp32-cam-car-003",
-   "esp32-cam-car-004",
-   "esp32-cam-car-005",
-   "esp32-cam-car-006",
-   "esp32-cam-car-007",
-   "esp32-cam-car-008",
-   "esp32-cam-car-009",
-   "esp32-cam-car-010"
-  ],
+  "facts_without_questions": 0,
+  "first_missing": [],
   "k": 11,
   "dropped": {},
+  "chat_sources": {
+   "chitchat": "qa-src",
+   "oos": "qa-src"
+  },
   "records": {
-   "facts": 22850,
-   "multi": 224
+   "facts": 26250,
+   "multi": 952,
+   "chitchat": 550,
+   "oos": 2222
   },
   "splits": {
-   "train": 20300,
-   "val": 930,
-   "test": 1844
+   "train": 26236,
+   "val": 1250,
+   "test": 1278,
+   "final": 1210
   },
   "by_kind": {
-   "single": 22850,
-   "multi": 224
+   "single": 25150,
+   "meta": 1100,
+   "multi": 952,
+   "chitchat": 550,
+   "oos": 2222
   }
  }
 }

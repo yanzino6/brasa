@@ -1,0 +1,52 @@
+{
+ "pt": {
+  "val": [
+   "Como calculo a velocidade média de um ônibus?",
+   "Preciso balancear uma equação química para amanhã.",
+   "Qual é a função dos ribossomos?",
+   "Resuma o enredo de Dom Casmurro.",
+   "Me ajuda com este exercício de reflexão da luz?"
+  ],
+  "test": [
+   "O que diferencia calor de temperatura?",
+   "Explique a primeira lei de Newton com um exemplo simples.",
+   "Como encontro a resistência equivalente neste circuito?",
+   "Uma onda tem frequência de dez hertz. O que isso significa?",
+   "Preciso entender a diferença entre ácido e base.",
+   "Por que o sal se dissolve na água?",
+   "Calcule a massa molar do gás carbônico.",
+   "Mitose e meiose são iguais?",
+   "Descreva o caminho do sangue pelo coração.",
+   "Me explica a seleção natural",
+   "Quais organismos são produtores numa cadeia alimentar?",
+   "Faça uma análise do narrador de Vidas Secas.",
+   "Soneto tem quantos versos?",
+   "Pode comparar o romantismo com o realismo para meu trabalho de literatura?"
+  ]
+ },
+ "en": {
+  "val": [
+   "Can you explain momentum using a skateboard example?",
+   "Help me name this chemical compound.",
+   "What do white blood cells do?",
+   "Summarize the main conflict in Macbeth.",
+   "I need a simple explanation of evaporation for science class."
+  ],
+  "test": [
+   "How far does a ball fall in two seconds?",
+   "Why does a straw look bent in water?",
+   "Find the period of a pendulum.",
+   "Could you walk me through this gravitational force problem?",
+   "What's the difference between an atom and an ion?",
+   "Show me how to calculate the pH of a solution.",
+   "Is rusting a chemical change",
+   "Explain how enzymes speed up reactions.",
+   "Where does cellular respiration happen?",
+   "Need help labeling the parts of a flower.",
+   "Compare inherited traits with learned behaviors for my biology homework.",
+   "Write a paragraph about symbolism in The Great Gatsby.",
+   "Who is the speaker in a poem?",
+   "Give me three examples of dramatic irony from Romeo and Juliet."
+  ]
+ }
+}

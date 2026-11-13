@@ -1,0 +1,58 @@
+{
+ "items": [
+  {
+   "id": "multi-academic-overview",
+   "facts": [
+    "studies-001",
+    "studies-003"
+   ],
+   "pt": [
+    "Qual é a formação em andamento de Yan e quais áreas fazem parte dos estudos?",
+    "Onde Yan faz faculdade e o que estuda e pesquisa?",
+    "Me conta sobre a graduação de Yan e o foco acadêmico.",
+    "Queria saber qual curso Yan está fazendo e quais assuntos explora.",
+    "Yan, onde você estuda e com o que trabalha academicamente?",
+    "Faculdade do Yan: curso, início e áreas de estudo?",
+    "Como se divide a trajetória universitária de Yan entre bacharelado e investigação aplicada?",
+    "Apresente o percurso de educação superior de Yan, incluindo instituição e conteúdo da formação."
+   ],
+   "en": [
+    "What degree is Yan pursuing, and what does Yan study and research?",
+    "Give me an overview of Yan's university education and academic interests.",
+    "Where is Yan studying, and what subjects does the program cover?",
+    "I'm curious about Yan's current degree and research focus.",
+    "Yan, what's your educational background and what are you exploring academically?",
+    "Yan's college studies: program, starting point and main topics?",
+    "Describe Yan's undergraduate path, including the institution and areas of investigation.",
+    "How does Yan's ongoing higher education combine foundational learning with applied inquiry?"
+   ]
+  },
+  {
+   "id": "multi-coursework-experience",
+   "facts": [
+    "studies-004",
+    "studies-005"
+   ],
+   "pt": [
+    "Quais habilidades aparecem nos trabalhos acadêmicos de Yan e de quais disciplinas vêm?",
+    "Me conta o que Yan pratica na faculdade e em quais matérias.",
+    "Queria conhecer as competências demonstradas por Yan e as disciplinas dos trabalhos documentados.",
+    "Trabalhos da faculdade do Yan: experiência prática e matérias de origem?",
+    "Yan, quais conhecimentos seus projetos acadêmicos demonstram e quais disciplinas estão representadas?",
+    "Explique a prática de Yan nos trabalhos universitários e os cursos que deram origem a essas atividades.",
+    "O que as entregas curriculares de Yan revelam sobre seu repertório técnico e sua procedência?",
+    "Relacione as capacidades evidenciadas nas tarefas de Yan às matérias que fornecem exemplos documentados."
+   ],
+   "en": [
+    "What skills does Yan's coursework demonstrate, and which classes produced the documented assignments?",
+    "Walk me through Yan's practical academic experience and the courses behind the work.",
+    "I'd like to know what Yan has practiced at university and in which subjects.",
+    "Yan's college assignments: technical skills and source courses?",
+    "Yan, what abilities show up in your academic work, and which classes are represented?",
+    "Explain the experience demonstrated by Yan's university projects and where those projects fit into the curriculum.",
+    "Which parts of Yan's technical repertoire are evident in submitted work, and what teaching units supplied the examples?",
+    "Connect the capabilities illustrated by Yan's academic portfolio with the subjects behind its documented exercises."
+   ]
+  }
+ ]
+}

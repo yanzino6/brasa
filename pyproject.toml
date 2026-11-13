@@ -46,3 +46,6 @@ ignore = [
 "scripts/write_questions.py" = ["E501"]  # long prompt lines are kept readable
 "scripts/build_corpus.py" = ["E501"]
 "scripts/rehearsal_persona*.py" = ["E501"]
+"scripts/fallback_questions.py" = ["E501"]  # lists of questions
+# one-off analyses behind the research log (docs/research-log.md): kept as they were run
+"scripts/analysis/*.py" = ["E501", "E702", "B023", "SIM115"]

@@ -1,0 +1,85 @@
+{
+ "items": [
+  {
+   "id": "multi-career-overview",
+   "facts": [
+    "experience-001",
+    "experience-003"
+   ],
+   "pt": [
+    "Qual período a experiência publicada de Yan cobre e que sistemas corporativos Yan desenvolveu?",
+    "Me conta quando começa e termina a trajetória profissional publicada de Yan e o trabalho com IA para empresas.",
+    "Queria saber o intervalo do histórico profissional de Yan e sua atuação em sistemas corporativos de IA.",
+    "Resumo da experiência de Yan: datas de início e fim e desenvolvimento de IA para empresas?",
+    "Quando sua experiência profissional publicada começa e termina, Yan, e o que você construiu para clientes corporativos?",
+    "Descreva a abrangência temporal do currículo de Yan e suas responsabilidades técnicas com IA empresarial.",
+    "Entre quais marcos se situa a carreira registrada de Yan e como Yan combinava componentes nas soluções empresariais?",
+    "De onde até onde vai o percurso documentado de Yan e em que consistiam as entregas inteligentes para organizações?"
+   ],
+   "en": [
+    "What period does Yan's published work history cover, and what AI systems did Yan build for businesses?",
+    "Walk me through Yan's career timeline and enterprise AI development work.",
+    "I'd like the starting and ending points of Yan's listed experience, plus the corporate AI responsibilities.",
+    "Yan, when does your published professional experience begin and end, and what did you develop for enterprise clients?",
+    "Summarize the dates covered by Yan's employment history and the scope of the enterprise AI work.",
+    "How far does Yan's documented work experience extend, and what went into the business AI systems?",
+    "Outline Yan's recorded career boundaries alongside the engineering behind solutions for corporate customers.",
+    "From which milestone to which milestone does Yan's résumé run, and how were intelligent business applications put together?"
+   ]
+  },
+  {
+   "id": "multi-management-role",
+   "facts": [
+    "experience-007",
+    "experience-008"
+   ],
+   "pt": [
+    "Qual cargo de gestão Yan teve na CT Junior, em que período e com quais responsabilidades?",
+    "Me conta quando Yan foi gestor na CT Junior e como conduzia os projetos.",
+    "Queria saber as datas da função gerencial de Yan na CT Junior e as etapas sob sua responsabilidade.",
+    "Yan, quando você atuou na gestão da CT Junior e como organizava o trabalho dos projetos?",
+    "Detalhe a posição de liderança de Yan na CT Junior, sua duração e o ciclo de projetos.",
+    "Gestão de Yan na CT Junior: qual função, quando e como eram conduzidas as entregas?",
+    "Em que intervalo Yan ocupou uma cadeira gerencial na CT Junior e o que acompanhava do diagnóstico à conclusão?",
+    "Situe a passagem de Yan pela liderança da CT Junior no calendário e explique sua participação do planejamento à execução."
+   ],
+   "en": [
+    "What management position did Yan hold at CT Junior, when, and what project responsibilities came with the role?",
+    "Tell me when Yan managed software development at CT Junior and how the projects were handled.",
+    "I'd like the dates of Yan's leadership role at CT Junior and the stages Yan oversaw.",
+    "Yan, what was your management title at CT Junior, when did you hold it, and how did you run projects?",
+    "Outline Yan's management tenure at CT Junior and the approach to project delivery.",
+    "CT Junior leadership experience: Yan's role, dates, and project duties?",
+    "Place Yan's managerial stint at CT Junior on a timeline and explain the remit from assessment through execution.",
+    "During which stretch was Yan in charge of development at CT Junior, and what did overseeing assignments involve?"
+   ]
+  },
+  {
+   "id": "multi-developer-role",
+   "facts": [
+    "experience-011",
+    "experience-013"
+   ],
+   "pt": [
+    "Quando Yan foi desenvolvedor na CT Junior e quais tecnologias usou nas aplicações e APIs?",
+    "Me conta o período de Yan como desenvolvedor na CT Junior e sua stack de desenvolvimento web.",
+    "Qual foi a passagem de Yan pelo cargo de desenvolvedor na CT Junior e com que ferramentas trabalhou?",
+    "Queria saber as datas do trabalho de Yan como desenvolvedor na CT Junior e os recursos usados no frontend e backend.",
+    "Yan, quando você trabalhou como desenvolvedor na CT Junior e qual era sua stack web?",
+    "Descreva o cargo inicial de desenvolvimento de Yan na CT Junior, o período e as tecnologias para interfaces e APIs.",
+    "Em que intervalo Yan programou na CT Junior antes da gerência, e em cima de quê construía soluções web?",
+    "Situe a fase de Yan como desenvolvedor na CT Junior no calendário e explique como eram feitas as páginas e integrações."
+   ],
+   "en": [
+    "When was Yan a software developer at CT Junior, and what technologies powered the web applications and APIs?",
+    "Tell me the dates of Yan's developer role at CT Junior and the web stack used.",
+    "I'd like Yan's software development tenure at CT Junior alongside the tools used for frontend and backend work.",
+    "Yan, when did you work as a developer at CT Junior, and what was your web stack?",
+    "Describe Yan's initial development position at CT Junior, its timeframe, and the technologies behind the applications.",
+    "CT Junior developer experience: Yan's dates and tools for building interfaces and APIs?",
+    "During which stretch did Yan code at CT Junior before management, and what were the web solutions built with?",
+    "Place Yan's developer stint at CT Junior on a timeline and explain how the responsive pages and service connections worked."
+   ]
+  }
+ ]
+}

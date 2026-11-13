@@ -1,0 +1,52 @@
+{
+ "pt": {
+  "val": [
+   "O que é Python?",
+   "Como a internet chega até minha casa?",
+   "Vale a pena comprar um celular dobrável?",
+   "Explique para que serve o React.",
+   "Qual notebook é melhor para editar vídeos?"
+  ],
+  "test": [
+   "Bluetooth precisa de Wi-Fi para funcionar?",
+   "Me explica computação em nuvem de um jeito simples",
+   "SSD faz tanta diferença assim?",
+   "Gostaria de entender a diferença entre Java e JavaScript.",
+   "Por que meu computador fica lento com várias abas abertas?",
+   "Como escolher um monitor para trabalhar?",
+   "Para que serve uma placa de vídeo?",
+   "Dá para recuperar arquivos apagados do pendrive?",
+   "O Linux é difícil de usar?",
+   "Compare Android e iOS em termos de privacidade.",
+   "Preciso de antivírus no tablet?",
+   "Quanto de memória RAM basta para estudar?",
+   "Você pode explicar o que acontece quando digito um endereço no navegador?",
+   "Rust é uma boa linguagem para iniciantes?"
+  ]
+ },
+ "en": {
+  "val": [
+   "What does a router actually do?",
+   "Is an iPad enough for college?",
+   "Explain the difference between HTML and CSS.",
+   "Why do people use Docker?",
+   "Should I get a gaming laptop or a desktop?"
+  ],
+  "test": [
+   "How does a search engine find websites?",
+   "Can you explain what NumPy is used for?",
+   "My phone gets hot while charging. Is that normal?",
+   "What's an API?",
+   "Do expensive HDMI cables make any difference?",
+   "Tell me how password managers work",
+   "Would you recommend a mechanical keyboard for office work?",
+   "Where are cookies stored?",
+   "Please compare OLED and LCD screens.",
+   "Does private browsing hide my activity from my internet provider?",
+   "Is learning SQL useful for beginners?",
+   "Help me choose between wired and wireless headphones.",
+   "Why are software updates so big sometimes?",
+   "Can a smartwatch work without a phone?"
+  ]
+ }
+}

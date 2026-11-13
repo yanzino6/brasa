@@ -31,7 +31,7 @@ export class BrasaClient {
   constructor(worker: WorkerLike);
   load(sources: Omit<LoadRequest, 'type' | 'id'>, onProgress?: (message: ProgressMessage) => void): Promise<ModelInfo>;
   tokenize(text: string, options?: { allowSpecial?: boolean }): Promise<{ text: string; tokens: TokenSpan[] }>;
-  retrieve(query: string, k?: number, lang?: 'pt' | 'en' | null): Promise<Hit[]>;
+  retrieve(query: string, k?: number, lang?: 'pt' | 'en' | null, options?: { dense?: boolean }): Promise<Hit[]>;
   ask(question: string, options?: Omit<AskRequest, 'type' | 'id' | 'question'>, handlers?: GenerationHandlers): Run;
   generate(tokens: number[], options?: Omit<GenerateRequest, 'type' | 'id' | 'tokens'>, handlers?: GenerationHandlers): Run;
   abort(id?: number): void;

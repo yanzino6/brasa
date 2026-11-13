@@ -96,6 +96,10 @@ class DataConfig:
     variants: int = 6  # training examples generated per QA record
     open_book_prob: float = 0.7  # share of the variants that carry a retrieved context
     noise_prob: float = 0.5  # share of the variants whose question gets surface noise (case, accents, typos)
+    # share of the variants whose question loses some of its words (each with probability word_dropout_rate):
+    # the fact has to be recognised from part of the wording, as with a phrasing never seen in training
+    word_dropout_prob: float = 0.0
+    word_dropout_rate: float = 0.25
     oracle_prob: float = 0.35  # open-book: make sure the gold facts are in the context
     drop_gold_prob: float = 0.15  # open-book: remove the gold facts (the retriever missed)
     shuffle_prob: float = 0.5  # open-book: shuffle the order of the facts
@@ -103,6 +107,12 @@ class DataConfig:
     # open-book, gold fact in the context: rewrite its numbers and one of its names, in the context AND in
     # the answer, so that the answer can only be produced by copying from the context (never from memory)
     counterfactual_prob: float = 0.0
+    # cross-fitted contexts: with n > 1 folds, the context of a training question comes from an index that
+    # does not hold the questions of its fold, so that retrieval is as hard in training as it is for a new
+    # phrasing (with 0 the gold fact is nearly always retrieved first and the context teaches nothing)
+    context_folds: int = 0
+    # sampling weight of an example: (importance of its fact / 5) ** importance_power; 0 = uniform
+    importance_power: float = 0.0
     prompt_loss_weight: float = 0.0  # loss weight of the non-answer tokens (0 = answer span only, 1 = all)
     prompt: PromptConfig = field(default_factory=PromptConfig)
 

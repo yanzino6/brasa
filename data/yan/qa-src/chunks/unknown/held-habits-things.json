@@ -1,0 +1,70 @@
+{
+ "pt": {
+  "val": [
+   "Yan costuma publicar stories?",
+   "A que horas Yan vai dormir?",
+   "Qual é o prato favorito de Yan?",
+   "Yan pratica natação?",
+   "Que modelo de carro Yan dirige?",
+   "O celular de Yan é de qual marca?",
+   "Quanto tempo Yan passa nas redes sociais?",
+   "Yan toma café da manhã todos os dias?"
+  ],
+  "test": [
+   "Com que frequência Yan abre o Instagram?",
+   "Yan acompanha algum influenciador?",
+   "O que Yan gosta de assistir no TikTok?",
+   "Yan costuma comentar nas publicações dos amigos?",
+   "Quantas horas Yan dorme por noite?",
+   "Yan tira cochilos depois do almoço?",
+   "Como é a rotina de Yan antes de deitar?",
+   "Yan acorda cedo nos fins de semana?",
+   "Yan segue alguma dieta?",
+   "Tem algum alimento que Yan evita?",
+   "Yan prefere cozinhar ou pedir comida?",
+   "Quais frutas Yan costuma comer?",
+   "Yan joga futebol com os amigos?",
+   "Que exercícios Yan faz na academia?",
+   "Yan corre quantos quilômetros por semana?",
+   "Existe algum esporte que Yan gostaria de aprender?",
+   "Yan tem moto?",
+   "O veículo de Yan é próprio ou alugado?",
+   "Qual console Yan tem em casa?",
+   "Yan coleciona alguma coisa?"
+  ]
+ },
+ "en": {
+  "val": [
+   "Does Yan post selfies often?",
+   "When is Yan's usual bedtime?",
+   "What's Yan's favorite snack?",
+   "Is Yan into tennis?",
+   "What kind of car does Yan own?",
+   "Which headphones does Yan use?",
+   "How often does Yan check Facebook?",
+   "Does Yan drink coffee every morning?"
+  ],
+  "test": [
+   "How much time does Yan spend scrolling through social media?",
+   "Who does Yan follow on Instagram?",
+   "Would Yan rather post videos or photos?",
+   "Is Yan active in any online fan communities?",
+   "How many hours of sleep does Yan get?",
+   "Does Yan stay up late on weekends?",
+   "What helps Yan fall asleep?",
+   "Is Yan a light sleeper?",
+   "Does Yan eat meat?",
+   "What would Yan order for dinner?",
+   "Any foods Yan can't stand?",
+   "How often does Yan cook at home?",
+   "Does Yan play basketball?",
+   "How far can Yan swim?",
+   "Where does Yan usually go running?",
+   "Has Yan ever taken martial arts classes?",
+   "Can Yan drive a manual?",
+   "Does Yan ride a motorcycle?",
+   "What watch does Yan wear?",
+   "Does Yan have a bicycle?"
+  ]
+ }
+}

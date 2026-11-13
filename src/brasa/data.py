@@ -6,10 +6,12 @@ A data directory holds a knowledge base and question/answer records:
     kb/topics.json   [{"slug", "type", "title_pt", "title_en", "aliases": [...]}]
     qa/*.jsonl       {"id", "lang": "pt"|"en", "q", "a", "facts": ["fact-id", ...],
                       "kind": "single"|"multi"|"chitchat"|"oos"|"meta",
-                      "split": "train"|"val"|"test", "key_spans": ["..."]}
+                      "split": "train"|"val"|"test"|"final", "key_spans": ["..."]}
 
 The test split holds questions whose phrasings never appear in train (held-out paraphrases of the same
-facts) plus out-of-scope questions never seen. load_dataset() validates all of this and fails loudly.
+facts) plus out-of-scope questions never seen. "final" is an optional second test split that nobody looks
+at while experiments are compared on "test": it is evaluated once, for the released model.
+load_dataset() validates all of this and fails loudly.
 An optional corpus.json ({"name", "fictional", "description", ...}) describes the corpus; it is copied
 into the run and the model card, so that numbers measured on a rehearsal corpus stay labelled as such.
 
@@ -32,6 +34,7 @@ import json
 import random
 import re
 import unicodedata
+import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -42,7 +45,7 @@ from .config import BOS, CTX, EOS, SEP, A, DataConfig, PromptConfig, Q
 
 LANGS = ("pt", "en")
 KINDS = ("single", "multi", "chitchat", "oos", "meta")
-SPLITS = ("train", "val", "test")
+SPLITS = ("train", "val", "test", "final")
 
 
 class DataError(ValueError):
@@ -263,6 +266,19 @@ def add_noise(q: str, rng: random.Random) -> str:
     return q.lower()
 
 
+def drop_words(q: str, rng: random.Random, rate: float = 0.25) -> str:
+    """The question with some of its words missing: at least two stay and at least one goes. Questions of
+    fewer than three words are returned unchanged."""
+    parts = q.split()
+    if len(parts) < 3 or rate <= 0:
+        return q
+    for _ in range(8):
+        kept = [w for w in parts if rng.random() >= rate]
+        if 2 <= len(kept) < len(parts):
+            return " ".join(kept)
+    return q
+
+
 # --------------------------------------------------------------------------------------- prompt format
 def build_prompt(tok, question: str, facts: list[str] | None, block_size: int,
                  cfg: PromptConfig | None = None, answer_reserve: int | None = None) -> tuple[list[int], int]:
@@ -295,6 +311,7 @@ class Example:
     record: str = ""  # QA record id
     open_book: bool = False
     gold_in_context: bool = False
+    weight: float = 1.0  # relative sampling weight (BatchSampler)
 
 
 def make_example(tok, question: str, answer: str, facts: list[str] | None, block_size: int,
@@ -378,20 +395,52 @@ def counterfactual(text: str, question: str, rng: random.Random, names: list[str
     return out
 
 
+def fold_of(record_id: str, n: int) -> int:
+    """The cross-fitting fold of a QA record. A question and its wrapped copy ("-w") share a fold."""
+    return zlib.crc32(record_id.removesuffix("-w").encode("utf-8")) % n
+
+
+def fold_retrievers(dataset: Dataset, n: int, make) -> list:
+    """n retrievers; number i was built without the training questions of fold i.
+
+    make(skip) builds a retriever that leaves out the records for which skip(record) is true. A training
+    question is then looked up in the index of its own fold, i.e. in an index that has never seen it, which
+    is the situation of every new question at inference time."""
+    return [make(lambda r, i=i: fold_of(r.id, n) == i) for i in range(n)]
+
+
 def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig, block_size: int,
-                   seed: int = 0) -> tuple[list[Example], dict]:
+                   seed: int = 0, folds: list | None = None) -> tuple[list[Example], dict]:
     """Turn the QA records of a split into training examples. Deterministic for a given seed.
 
     Variant 0 of every record is the clean closed-book example and variant 1 the clean open-book example
-    with the retriever's own context; the remaining variants are randomised."""
+    with the retriever's own context; the remaining variants are randomised. With folds (see
+    fold_retrievers) the context of a record comes from the retriever of its fold instead of `retriever`.
+    A retriever that embeds its queries (encode_queries, e.g. encoder.DenseRetriever) is given all the
+    open-book questions at once before the first search."""
     examples: list[Example] = []
     open_with_gold = gold_hits = n_counterfactual = 0
     names = name_pool(dataset) if cfg.counterfactual_prob > 0 else {}
+    shared = retriever
+
+    def variant(rec: QARecord, v: int, has_retriever: bool) -> tuple[random.Random, str, bool]:
+        """(the generator of the variant, its question, whether it is open-book): the first draws of a variant."""
+        rng = random.Random(f"{seed}:{rec.id}:{v}")
+        question = rec.q
+        if v >= 2 and cfg.word_dropout_prob > 0 and rng.random() < cfg.word_dropout_prob:
+            question = drop_words(question, rng, cfg.word_dropout_rate)
+        if v >= 2 and rng.random() < cfg.noise_prob:
+            question = add_noise(question, rng)
+        return rng, question, has_retriever and (v == 1 or (v >= 2 and rng.random() < cfg.open_book_prob))
+
+    if hasattr(shared, "encode_queries") and not folds:
+        shared.encode_queries([q for rec in dataset.split(split) for v in range(max(1, cfg.variants))
+                               for _, q, open_book in [variant(rec, v, True)] if open_book])
     for rec in dataset.split(split):
+        retriever = folds[fold_of(rec.id, len(folds))] if folds and shared is not None else shared
+        importance = max((dataset.facts[f].importance for f in rec.facts), default=5.0)
         for v in range(max(1, cfg.variants)):
-            rng = random.Random(f"{seed}:{rec.id}:{v}")
-            question = add_noise(rec.q, rng) if v >= 2 and rng.random() < cfg.noise_prob else rec.q
-            open_book = retriever is not None and (v == 1 or (v >= 2 and rng.random() < cfg.open_book_prob))
+            rng, question, open_book = variant(rec, v, retriever is not None)
             facts, gold_in = None, False
             if open_book:
                 if v == 1:
@@ -414,6 +463,7 @@ def build_examples(dataset: Dataset, split: str, tok, retriever, cfg: DataConfig
                     n_counterfactual += 1
             ex = make_example(tok, question, answer, facts, block_size, cfg.prompt)
             ex.record, ex.open_book, ex.gold_in_context = rec.id, open_book, gold_in
+            ex.weight = (importance / 5.0) ** cfg.importance_power if cfg.importance_power else 1.0
             examples.append(ex)
     lengths = sorted(len(e.ids) for e in examples) or [0]
     n_open = sum(e.open_book for e in examples)
@@ -440,7 +490,8 @@ class BatchSampler:
     Every example starts at position 0, exactly as at inference time. Rows are padded to the width of
     their bucket and a batch holds batch_tokens / width rows, so short examples are not drowned in
     padding and every step costs about the same. A bucket is chosen with probability proportional to
-    its token mass, which makes every example equally likely per step. batch(step) is a pure function of
+    its token mass, which makes every example equally likely per step (or likely in proportion to
+    Example.weight, when the examples carry importance weights). batch(step) is a pure function of
     (seed, step): resuming a run replays exactly the batches it would have seen."""
 
     examples: list[Example]
@@ -453,6 +504,7 @@ class BatchSampler:
     buckets: list[dict] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
+        self.weighted = any(ex.weight != 1.0 for ex in self.examples)
         widths = sorted({w for w in self.widths if w < self.block_size} | {self.block_size})
         groups: dict[int, list[Example]] = {}
         for ex in self.examples:
@@ -468,8 +520,9 @@ class BatchSampler:
                 weight[i, : ex.answer_start] = self.prompt_loss_weight
                 weight[i, ex.answer_start : len(ex.ids)] = 1.0
             self.buckets.append({"width": width, "ids": ids, "weight": weight,
-                                 "rows": max(1, self.batch_tokens // width)})
-        self._mass = [len(b["ids"]) * b["width"] for b in self.buckets]
+                                 "rows": max(1, self.batch_tokens // width),
+                                 "sampling": [ex.weight for ex in group]})
+        self._mass = [sum(b["sampling"]) * b["width"] for b in self.buckets]
 
     def batch(self, step: int):
         """Returns numpy arrays (x, y, w): inputs, targets (-100 where nothing is learned), weights
@@ -477,7 +530,10 @@ class BatchSampler:
         rng = random.Random(self.seed * 1_000_003 + step)
         b = rng.choices(self.buckets, weights=self._mass)[0]
         n = len(b["ids"])
-        rows = rng.sample(range(n), b["rows"]) if b["rows"] <= n else rng.choices(range(n), k=b["rows"])
+        if self.weighted:  # importance sampling: with replacement, proportional to the example weights
+            rows = rng.choices(range(n), weights=b["sampling"], k=b["rows"])
+        else:
+            rows = rng.sample(range(n), b["rows"]) if b["rows"] <= n else rng.choices(range(n), k=b["rows"])
         ids, weight = b["ids"][rows], b["weight"][rows]
         x, y, w = ids[:, :-1], ids[:, 1:].copy(), weight[:, 1:]
         y[w == 0] = -100

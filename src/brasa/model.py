@@ -173,13 +173,14 @@ class GPT(nn.Module):
         shape = (batch_size, self.cfg.n_head, 0, self.cfg.head_dim)
         return [(torch.zeros(shape, device=device, dtype=dtype),) * 2 for _ in self.blocks]
 
-    def forward(self, idx, targets=None, cache=None, loss_weights=None):
+    def forward(self, idx, targets=None, cache=None, loss_weights=None, label_smoothing: float = 0.0):
         """idx: (B, T) token ids.
 
         cache=None  -> plain causal forward over the whole sequence (training).
         cache=[...] -> idx holds only the NEW tokens; positions continue after the cached ones.
         targets     -> (B, T) next-token ids, -100 where there is nothing to predict.
         loss_weights-> optional (B, T) per-position weights; the loss is their weighted mean.
+        label_smoothing -> share of the target probability spread over the other tokens (training only).
         Returns (logits, loss, new_cache)."""
         B, T = idx.shape
         P = 0 if cache is None else cache[0][0].shape[2]
@@ -199,12 +200,25 @@ class GPT(nn.Module):
         if targets is not None:
             flat = logits.view(-1, logits.size(-1)).float()
             if loss_weights is None:
-                loss = F.cross_entropy(flat, targets.view(-1), ignore_index=-100)
+                loss = F.cross_entropy(flat, targets.view(-1), ignore_index=-100, label_smoothing=label_smoothing)
             else:
-                per_token = F.cross_entropy(flat, targets.view(-1), ignore_index=-100, reduction="none")
+                per_token = F.cross_entropy(flat, targets.view(-1), ignore_index=-100, reduction="none",
+                                            label_smoothing=label_smoothing)
                 w = loss_weights.view(-1).float()
                 loss = (per_token * w).sum() / w.sum().clamp_min(1e-8)
         return logits, loss, new_cache
+
+    def hidden(self, idx):
+        """Final hidden states of a full causal pass, (B, T, C): after the last RMSNorm, before the output
+        head. The dual encoder (encoder.py) pools them into one vector per text."""
+        T = idx.shape[1]
+        if T > self.cfg.block_size:
+            raise ValueError(f"sequence of {T} tokens exceeds block_size {self.cfg.block_size}")
+        cos, sin = self.rope_cos[:T], self.rope_sin[:T]
+        x = self.drop(self.tok_emb(idx))
+        for block in self.blocks:
+            x, _, _ = block(x, cos, sin)
+        return self.norm_f(x)
 
     @torch.no_grad()
     def inspect(self, idx) -> dict:

@@ -32,7 +32,10 @@
   "weight_decay": null,
   "dropout": null,
   "grad_clip": null,
-  "betas": [null, null],
+  "betas": [
+   null,
+   null
+  ],
   "seed": null,
   "device": null,
   "compile": null,
@@ -43,7 +46,15 @@
   "tokens_seen": null,
   "epochs_equivalent": null,
   "best_val_loss": null,
-  "final_val": {"step": null, "val_loss": null, "val_loss_open": null, "val_loss_closed": null},
+  "final_val": {
+   "step": null,
+   "val_loss": null,
+   "val_loss_open": null,
+   "val_loss_closed": null,
+   "val_em": null,
+   "val_em_open": null,
+   "val_em_closed": null
+  },
   "data_config": {
    "variants": null,
    "open_book_prob": null,
@@ -53,7 +64,61 @@
    "shuffle_prob": null,
    "random_distractor_prob": null,
    "prompt_loss_weight": null,
-   "prompt": {"max_question_tokens": null, "answer_reserve": null, "max_facts": null}
+   "prompt": {
+    "max_question_tokens": null,
+    "answer_reserve": null,
+    "max_facts": null
+   },
+   "word_dropout_prob": null,
+   "word_dropout_rate": null,
+   "counterfactual_prob": null,
+   "context_folds": null,
+   "importance_power": null
+  },
+  "index": null,
+  "label_smoothing": null,
+  "init_from": {
+   "_about": "null for a run that started from random weights on the question corpus. Otherwise the brasa.pretrain run it started from (still from scratch: next-token prediction on public text from random weights) with the provenance of that text.",
+   "dir": null,
+   "checkpoint": null,
+   "objective": null,
+   "steps": null,
+   "tokens_seen": null,
+   "epochs_equivalent": null,
+   "train_seconds": null,
+   "final_val": {
+    "step": null,
+    "val_loss": null,
+    "val_ppl": null
+   },
+   "corpus": {
+    "text_files": [],
+    "tokenizer": {},
+    "tokens": null,
+    "manifests": {}
+   }
+  },
+  "contexts_from": null,
+  "retrieval_weight": null,
+  "retrieval": {
+   "_about": "null unless the run was trained with --retrieval-weight (the network also ranks the facts). weight: how much the cosine counts next to the normalised BM25 score, chosen on validation; recall: gold facts among the first k hits on held-out questions, for BM25 alone, the learned ranking alone and their fusion.",
+   "pooling": null,
+   "temperature": null,
+   "weight": null,
+   "recall": {
+    "lexical": {
+     "val": {},
+     "test": {}
+    },
+    "dense": {
+     "val": {},
+     "test": {}
+    },
+    "fused": {
+     "val": {},
+     "test": {}
+    }
+   }
   }
  },
  "data": {
@@ -64,11 +129,32 @@
   "topics": null,
   "qa": null,
   "splits": {
-   "train": {"n": null, "by_lang": {}, "by_kind": {}},
-   "val": {"n": null, "by_lang": {}, "by_kind": {}},
-   "test": {"n": null, "by_lang": {}, "by_kind": {}}
+   "train": {
+    "n": null,
+    "by_lang": {},
+    "by_kind": {}
+   },
+   "val": {
+    "n": null,
+    "by_lang": {},
+    "by_kind": {}
+   },
+   "test": {
+    "n": null,
+    "by_lang": {},
+    "by_kind": {}
+   },
+   "final": {
+    "n": null,
+    "by_lang": {},
+    "by_kind": {}
+   }
   },
-  "train_questions_per_fact_and_lang": {"min": null, "median": null, "max": null},
+  "train_questions_per_fact_and_lang": {
+   "min": null,
+   "median": null,
+   "max": null
+  },
   "training_examples": {
    "examples": null,
    "open_book": null,
@@ -82,29 +168,97 @@
   }
  },
  "evaluation": {
-  "_about": "One entry per weight format: float32 (the checkpoint, written by brasa.evaluate), float16 and int8 (the exported weights, written by brasa.export). `headline[mode][seen|val|test]` holds n, em, f1, in_scope_em, in_scope_f1, key_span_recall, refusal_precision, refusal_recall, language_consistency, unsupported_number_rate and, open-book only, retrieval_hit, em_when_gold_retrieved, em_when_gold_missed. `full[mode][split]` holds the same metrics as overall / by_lang / by_kind / by_topic / by_retrieval.",
-  "float32": {"checkpoint": null, "seconds": null, "headline": {"open_book": {}, "closed_book": {}}, "full": {}},
-  "float16": {"headline": {}, "full": {}, "answers_identical_to_float32": null, "changed_examples": []},
-  "int8": {"headline": {}, "full": {}, "answers_identical_to_float32": null, "changed_examples": []}
+  "_about": "One entry per weight format: float32 (the checkpoint, written by brasa.evaluate), float16 and int8 (the exported weights, written by brasa.export). Modes: open_book, closed_book (free decoding), open_book_constrained, closed_book_constrained (any curated sentence), open_book_retrieved (only the retrieved facts), open_book_ranked (the same with the retriever's ranking as a prior: the site's default) and first_hit (no model). `headline[mode][seen|val|test|final]` holds n, em, f1, in_scope_em, in_scope_f1, key_span_recall, refusal_precision, refusal_recall, language_consistency, unsupported_number_rate, verbatim_rate, right_topic_rate and, open-book only, retrieval_hit, gold_in_top1/2/4, em_when_gold_retrieved, em_when_gold_missed. `full[mode][split]` holds the same metrics as overall / by_lang / by_kind / by_topic / by_retrieval. `decoding` records how the open-book rows were produced: the retriever (bm25, bm25+own, bm25+encoder, with the fusion weight) and the ranking prior of open_book_ranked (kind, weight, fixed), chosen on validation by `brasa.evaluate --tune-prior`.",
+  "float32": {
+   "checkpoint": null,
+   "seconds": null,
+   "decoding": {
+    "constrained_beam": null,
+    "constrained_language": null,
+    "retriever": {
+     "kind": null,
+     "weight": null
+    },
+    "prior": {
+     "kind": null,
+     "weight": null,
+     "fixed": null
+    }
+   },
+   "headline": {
+    "open_book": {},
+    "closed_book": {},
+    "open_book_constrained": {},
+    "closed_book_constrained": {},
+    "open_book_retrieved": {},
+    "open_book_ranked": {},
+    "first_hit": {}
+   },
+   "full": {}
+  },
+  "float16": {
+   "headline": {},
+   "full": {},
+   "answers_identical_to_float32": null,
+   "changed_examples": []
+  },
+  "int8": {
+   "headline": {},
+   "full": {},
+   "answers_identical_to_float32": null,
+   "changed_examples": []
+  }
  },
  "files": {
   "_about": "Size report of the export directory: bytes, gzip -9, brotli -11 and SHA-256 of every file.",
   "directory": null,
-  "model.i8.bin": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
-  "model.f16.bin": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
-  "tokenizer.json": {"bytes": null, "gzip": null, "brotli": null, "sha256": null},
-  "retrieval.json": {"bytes": null, "gzip": null, "brotli": null, "sha256": null}
+  "model.i8.bin": {
+   "bytes": null,
+   "gzip": null,
+   "brotli": null,
+   "sha256": null
+  },
+  "model.f16.bin": {
+   "bytes": null,
+   "gzip": null,
+   "brotli": null,
+   "sha256": null
+  },
+  "tokenizer.json": {
+   "bytes": null,
+   "gzip": null,
+   "brotli": null,
+   "sha256": null
+  },
+  "retrieval.json": {
+   "bytes": null,
+   "gzip": null,
+   "brotli": null,
+   "sha256": null
+  }
  },
  "quantisation": {
   "_about": "Weight and logit error of each exported format against the float32 checkpoint.",
-  "f16": {"mean_relative_weight_rmse": null, "max_abs_logit_drift_vs_float32": null, "greedy_identical_to_float32": null},
-  "i8": {"mean_relative_weight_rmse": null, "max_abs_logit_drift_vs_float32": null, "greedy_identical_to_float32": null}
+  "f16": {
+   "mean_relative_weight_rmse": null,
+   "max_abs_logit_drift_vs_float32": null,
+   "greedy_identical_to_float32": null
+  },
+  "i8": {
+   "mean_relative_weight_rmse": null,
+   "max_abs_logit_drift_vs_float32": null,
+   "greedy_identical_to_float32": null
+  }
  },
  "onnx": {
   "_about": "Optional, written by brasa.export_onnx.",
   "directory": null,
   "files": {},
-  "parity": {"ok": null, "max_abs_logit_diff": {}, "greedy_identical": {}},
+  "parity": {
+   "ok": null,
+   "max_abs_logit_diff": {},
+   "greedy_identical": {}
+  },
   "exporters": {}
  },
  "updated_at": null

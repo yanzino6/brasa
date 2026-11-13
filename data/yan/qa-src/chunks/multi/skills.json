@@ -1,0 +1,112 @@
+{
+ "items": [
+  {
+   "id": "multi-technical-overview",
+   "facts": [
+    "skills-001",
+    "skills-019"
+   ],
+   "pt": [
+    "Qual é o panorama das habilidades técnicas de Yan, incluindo IA e automação?",
+    "Me conta a stack de Yan e as competências em automação inteligente.",
+    "Queria conhecer as tecnologias usadas por Yan e a experiência com agentes de IA.",
+    "Yan, quais ferramentas você usa e quais são suas habilidades em IA e automação?",
+    "Resumo técnico de Yan: desenvolvimento, inteligência artificial e automação?",
+    "Com quais tecnologias Yan trabalha e o que sabe usar para automatizar processos com IA?",
+    "Como o repertório de Yan combina construção de software e processos automatizados por inteligência artificial?",
+    "O que compõe a bagagem de Yan para criar aplicações e soluções inteligentes que automatizam tarefas?"
+   ],
+   "en": [
+    "What does Yan's technical toolkit cover, including AI and automation?",
+    "Give me an overview of Yan's development stack and intelligent automation skills.",
+    "Which technologies does Yan work with, and what are Yan's AI capabilities?",
+    "Yan, what tools do you use for development and AI automation?",
+    "I'm interested in Yan's software skills alongside process automation expertise.",
+    "Describe Yan's technical range across application development, artificial intelligence and automation.",
+    "How does Yan's engineering background extend into automating work with intelligent systems?",
+    "What's in Yan's repertoire for building software and creating automated AI workflows?"
+   ]
+  },
+  {
+   "id": "multi-web-rendering-projects",
+   "facts": [
+    "skills-004",
+    "skills-005"
+   ],
+   "pt": [
+    "Qual é a experiência de Yan com rotas e renderização, e em quais projetos aparece?",
+    "Me conta sobre páginas e renderização no trabalho de Yan, com exemplos de aplicações.",
+    "Yan, como você trabalhou com roteamento e renderização, e quais projetos mostram essa experiência?",
+    "Queria saber o repertório de Yan em renderização web e os projetos relacionados.",
+    "Experiência de Yan com rotas, páginas e exemplos de projetos web?",
+    "Explique o trabalho de Yan com renderização entre arquiteturas diferentes e cite as aplicações.",
+    "Onde Yan colocou em prática diferentes formas de gerar páginas, e qual foi o alcance dessa atuação?",
+    "Que sites e aplicações demonstram a bagagem de Yan na organização e apresentação de conteúdo web?"
+   ],
+   "en": [
+    "What routing and rendering experience does Yan have, and which projects demonstrate it?",
+    "Tell me about Yan's page rendering work and the applications involved.",
+    "Yan, where have you handled routes and rendering, and what did that work cover?",
+    "I'm looking for Yan's experience across web architectures, including rendering and project examples.",
+    "Yan's routing and page rendering background, with examples?",
+    "Describe Yan's rendering experience across different versions and the projects behind it.",
+    "Which websites and applications show how Yan has put different page delivery approaches into practice?",
+    "Where has Yan applied ways of generating web pages, and how broad is that background?"
+   ]
+  },
+  {
+   "id": "multi-ml-training-evaluation",
+   "facts": [
+    "skills-014",
+    "skills-015"
+   ],
+   "pt": [
+    "Como Yan aproveitou redes pré-treinadas e avaliou modelos nos trabalhos acadêmicos?",
+    "Quais ferramentas Yan usou para adaptar modelos existentes e como cuidou da avaliação?",
+    "Me conta a experiência acadêmica de Yan com reaproveitamento de redes e avaliação confiável.",
+    "Yan, como você adaptou modelos prontos e verificou a qualidade dos resultados em equipe?",
+    "Queria entender os recursos usados por Yan com redes pré-treinadas e os cuidados ao medir desempenho.",
+    "Adaptação de modelos e rigor de avaliação nos projetos acadêmicos de Yan?",
+    "Que bagagem Yan tem em partir de redes já aprendidas e conferir se os resultados são confiáveis?",
+    "De que maneira os trabalhos universitários de Yan combinam aprendizado reaproveitado e análise criteriosa das previsões?"
+   ],
+   "en": [
+    "How has Yan adapted pretrained networks and evaluated models in academic work?",
+    "Which tools did Yan use to reuse trained models, and how was evaluation handled?",
+    "Tell me about Yan's academic experience with model adaptation and reliable evaluation.",
+    "Yan, how did you build on existing networks and assess results in team projects?",
+    "I'm curious about Yan's pretrained model toolkit and evaluation safeguards.",
+    "Describe Yan's experience reusing learned representations and measuring model performance carefully.",
+    "What background does Yan have in starting from established networks and checking whether predictions hold up?",
+    "How do Yan's university collaborations combine previously learned features with trustworthy assessment of outcomes?"
+   ]
+  },
+  {
+   "id": "multi-server-database-permissions",
+   "facts": [
+    "skills-010",
+    "skills-011"
+   ],
+   "pt": [
+    "Como Yan trabalhou com funções de servidor e autorização no banco do SmartSide CRM?",
+    "Me conta a experiência de Yan com execução no servidor e permissões de dados no SmartSide CRM.",
+    "Yan, como você alinhou operações de servidor e controle de acesso ao banco no SmartSide CRM?",
+    "Quais recursos Yan usou para funções de servidor e autorização de dados no SmartSide CRM?",
+    "Queria entender a atuação de Yan em permissões no servidor e no banco do SmartSide CRM.",
+    "Funções de servidor e regras de acesso aos dados: qual foi a experiência de Yan no SmartSide CRM?",
+    "De que maneira Yan manteve o processamento e as consultas sujeitos às restrições dos usuários no SmartSide CRM?",
+    "Que prática Yan tem conectando ações do backend à proteção dos registros no SmartSide CRM?"
+   ],
+   "en": [
+    "How did Yan handle server functions and database authorization in SmartSide CRM?",
+    "Tell me about Yan's server execution and data permission experience in SmartSide CRM.",
+    "Yan, how did you align server operations with database access controls in SmartSide CRM?",
+    "Which mechanisms supported Yan's server function work and database authorization in SmartSide CRM?",
+    "I'm interested in Yan's permission handling across server operations and the database in SmartSide CRM.",
+    "Describe Yan's practical work on server functions and data access rules in SmartSide CRM.",
+    "What experience does Yan have keeping backend actions and stored records under appropriate restrictions in SmartSide CRM?",
+    "How does Yan's SmartSide CRM work connect backend processing with protection of stored information?"
+   ]
+  }
+ ]
+}

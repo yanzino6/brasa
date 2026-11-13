@@ -11,9 +11,10 @@ import sys
 import numpy as np
 import pytest
 import torch
-from conftest import ENGINE, KERNEL, ML_ROOT, TINY, small_dataset
+from conftest import ENGINE, KERNEL, ML_ROOT, REHEARSAL, TINY, small_dataset
 
 from brasa.config import DataConfig, GPTConfig, PromptConfig
+from brasa.evaluate import MODES
 from brasa.export import (
     SAMPLING_CASES,
     dequantized_model,
@@ -176,16 +177,47 @@ def test_committed_fixture_is_what_python_produces_today(dataset):
     finally:
         sys.path.pop(0)
 
+    from brasa.encoder import embed, fact_ids, question_ids
+
     tok = BPETokenizer.load(TINY / "tokenizer.json")
     retriever = Bm25Retriever.load(TINY / "retrieval.json")
     committed = json.loads((TINY / "parity.json").read_text(encoding="utf-8"))
-    rebuilt = build_parity(tok, retriever, dataset, make_fixtures.MODEL["block_size"], make_fixtures.PROMPT)
-    assert json.loads(json.dumps(rebuilt)) == committed, "parity.json is stale: regenerate the fixtures"
+    # the fixture index carries fact vectors computed with the int8 weights: the same weights embed the questions
+    _, shipped = read_tgpt(TINY / "model.i8.bin")
+    pad = tok.special_ids["<|pad|>"]
+    assert retriever.dense is not None and retriever.index["dense"]["weights"] == "i8"
+
+    def embedder(question: str):
+        with torch.no_grad():
+            return embed(shipped, [question_ids(tok, question)], pad, "cpu", retriever.dense["pooling"])[0].numpy()
+
+    rebuilt = build_parity(tok, retriever, dataset, make_fixtures.MODEL["block_size"], make_fixtures.PROMPT,
+                           embedder=embedder)
+    rebuilt, dense, committed_dense = json.loads(json.dumps(rebuilt)), None, committed.pop("dense")
+    dense = rebuilt.pop("dense")
+    assert rebuilt == committed, "parity.json is stale: regenerate the fixtures"
+    # the fused searches depend on a forward pass, so they are compared with a tolerance instead of exactly
+    assert [c["q"] for c in dense] == [c["q"] for c in committed_dense] and len(dense) >= 20
+    for old, new in zip(committed_dense, dense, strict=True):
+        np.testing.assert_allclose(new["vector"], old["vector"], atol=1e-5)
+        for a, b in zip(old["searches"], new["searches"], strict=True):
+            assert [h["doc"] for h in a["hits"]] == [h["doc"] for h in b["hits"]]
+            np.testing.assert_allclose([h["score"] for h in a["hits"]], [h["score"] for h in b["hits"]], atol=1e-4)
+    with torch.no_grad():
+        vectors = embed(shipped, [fact_ids(tok, d["text"]) for d in retriever.docs], pad, "cpu", "mean").numpy()
+    assert retriever.with_dense(vectors, 1.0).index["dense"]["vectors"] == retriever.index["dense"]["vectors"], \
+        "the fact vectors of the fixture are what the int8 weights produce"
 
     for fmt in ("f16", "i8"):
         header, model = read_tgpt(TINY / f"model.{fmt}.bin")
         assert header["tokenizer"] == tok.to_json() and header["prompt"] == make_fixtures.PROMPT.to_dict()
         vec = json.loads((TINY / f"testvec.{fmt}.json").read_text(encoding="utf-8"))
+        for case in vec["embed"]:
+            with torch.no_grad():
+                v = embed(model, [case["tokens"]], pad, "cpu", case["pooling"])[0]
+            np.testing.assert_allclose(v.numpy(), case["vector"], atol=1e-5)
+            assert abs(float(v.norm()) - 1) < 1e-5
+        assert {c["pooling"] for c in vec["embed"]} == {"mean", "last"}
         again = test_vectors(model, [c["prompt"] for c in vec["cases"]])
         for old, new in zip(vec["cases"], again["cases"], strict=True):
             assert old["greedy"] == new["greedy"]
@@ -221,6 +253,27 @@ def test_export_then_node_engine_parity(node, tok, retriever, dataset, tmp_path)
     text = report["text"]
     assert text["tokenizer"]["mismatches"] == 0 and text["prompt"]["mismatches"] == 0
     assert text["retrieval"]["rankingMismatches"] == 0 and text["retrieval"]["scoreMismatches"] == 0
+    assert "dense" not in text and all("denseSearches" not in r for r in report["engine"].values()), \
+        "a plain export has no fact vectors"
+    assert all(r["maxAbsEmbedDiff"] < 1e-5 for r in report["engine"].values()), "but the engine can still embed"
+
+    # the same model exported as its own retriever: fact vectors in the index, fused searches in the fixtures
+    dense_dir = tmp_path / "dense"
+    manifest = export_model(model, tok, dense_dir, prompts, None, prompt_cfg, "unit", ("f16", "i8"), retriever,
+                            dataset, dense={"weight": 0.5, "pooling": "last"})
+    assert manifest["dense_retrieval"] == {"version": 1, "dim": 64, "pooling": "last", "weight": 0.5, "max_tokens": 128,
+                                           "scale": manifest["dense_retrieval"]["scale"], "weights": "i8"}
+    index = json.loads((dense_dir / "retrieval.json").read_text(encoding="utf-8"))
+    assert index["dense"]["dim"] == 64 and index["docs"] == retriever.index["docs"]
+    assert "dense" not in retriever.index, "the retriever that was passed in is not changed"
+    code, report = run_parity(node, dense_dir)
+    assert code == 0 and report["ok"], report
+    dense = report["text"]["dense"]
+    assert dense["searches"] >= 40 and dense["rankingMismatches"] == 0 and dense["scoreMismatches"] == 0
+    for kernel in kernels:   # end to end with the engine's own question vector, for the weights that made the facts'
+        r = report["engine"][f"i8.{kernel}"]
+        assert r["denseScoreMismatches"] == 0 and r["maxDenseScoreDiff"] < 1e-4, r
+        assert "denseSearches" not in report["engine"][f"f16.{kernel}"]
 
 
 def test_node_parity_detects_a_wrong_weight(node, tmp_path):
@@ -268,8 +321,8 @@ def test_train_evaluate_export_end_to_end(tmp_path, request):
     assert set(card["evaluation"]) == {"float16", "int8"}, "the quantised weights are evaluated, not assumed"
     for label in ("float16", "int8"):
         e = card["evaluation"][label]
-        assert set(e["headline"]) == {"open_book", "closed_book"} and "test" in e["headline"]["open_book"]
-        assert e["answers_identical_to_float32"].endswith(f"/{2 * (12 + 13)}")
+        assert set(e["headline"]) == set(MODES) and "test" in e["headline"]["open_book"]
+        assert e["answers_identical_to_float32"].endswith(f"/{len(MODES) * (12 + 13)}")
     assert card["files"]["model.i8.bin"]["sha256"] == files["model.i8.bin"]["sha256"]
     assert set(card["quantisation"]) == {"f16", "i8"}
 
@@ -282,6 +335,47 @@ def test_train_evaluate_export_end_to_end(tmp_path, request):
     assert set(report["engine"]) == {"f16.js", "f16.wasm-simd", "i8.js", "i8.wasm-simd"}
 
 
+def test_a_run_that_also_retrieves_is_exported_with_its_fact_vectors(tmp_path, request):
+    """train --retrieval-weight, then the command-line export: the index carries the vectors of the int8
+    weights, the quantised weights are evaluated with their own fused ranking, and Node agrees."""
+    from brasa.evaluate import main as evaluate_main
+
+    data = small_dataset(tmp_path / "data")
+    run = tmp_path / "run"
+    prompt = PromptConfig(max_question_tokens=32, answer_reserve=20, max_facts=3)
+    summary = train(TrainConfig(preset="brasa-4m", data_dir=str(data), out=str(run), steps=6, batch_tokens=512,
+                                lr=3e-3, warmup=2, dropout=0.0, vocab_size=320, block_size=128, device="cpu",
+                                compile="off", amp="off", log_every=3, eval_every=6, ckpt_every=6, index="fields",
+                                retrieval_weight=1.0, retrieval_batch=8,
+                                data=DataConfig(variants=3, prompt=prompt)))
+    weight = summary["retrieval"]["weight"]
+    evaluate_main(["--run", str(run), "--device", "cpu", "--splits", "test",
+                   "--modes", "open_book_retrieved,first_hit"])
+    export_main(["--run", str(run), "--device", "cpu", "--no-brotli", "--eval-splits", "test",
+                 "--eval-modes", "open_book_retrieved"])
+
+    out = run / "export"
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["dense_retrieval"]["weight"] == weight and manifest["dense_retrieval"]["weights"] == "i8"
+    index = json.loads((out / "retrieval.json").read_text(encoding="utf-8"))
+    assert index["dense"]["dim"] == manifest["config"]["d_model"] and index["dense"]["pooling"] == "mean"
+    kept = json.loads((run / "retrieval.json").read_text(encoding="utf-8"))
+    assert "dense" not in kept, "the run keeps its BM25 index"
+
+    card = json.loads((run / "model-card.json").read_text(encoding="utf-8"))
+    assert card["evaluation"]["float32"]["decoding"]["retriever"] == {"kind": "bm25+own", "weight": weight}
+    assert set(card["evaluation"]["int8"]["headline"]) == {"open_book_retrieved"}
+
+    export_main(["--run", str(run), "--out", str(tmp_path / "lexical"), "--device", "cpu", "--no-brotli", "--no-eval",
+                 "--retriever", "lexical"])
+    assert "dense" not in json.loads((tmp_path / "lexical" / "retrieval.json").read_text(encoding="utf-8"))
+
+    node = request.getfixturevalue("node")
+    code, report = run_parity(node, out)
+    assert code == 0 and report["ok"], report
+    assert report["text"]["dense"]["scoreMismatches"] == 0 and report["engine"]["i8.js"]["denseScoreMismatches"] == 0
+
+
 def test_node_test_suite(node):
     """The engine's own tests (web/engine/test/*.test.mjs) pass on the committed fixture."""
     files = sorted(str(p) for p in (ENGINE / "test").glob("*.test.mjs"))
@@ -289,6 +383,34 @@ def test_node_test_suite(node):
     out = subprocess.run([node, "--test", "--test-timeout=120000", *files], cwd=ML_ROOT / "web",
                          capture_output=True, text=True, timeout=600)
     assert out.returncode == 0, (out.stdout + out.stderr)[-3000:]
+
+
+def test_the_session_in_node_gives_the_answers_python_gives(node, tmp_path):
+    """scripts/compare_answers.py on the committed fixture: the whole chain (retrieve, embed the question,
+    build the prompt, constrained decoding with the stored prior) through the browser session and in Python."""
+    out = tmp_path / "answers_parity.json"
+    done = subprocess.run([sys.executable, str(ML_ROOT / "scripts" / "compare_answers.py"), str(TINY),
+                           "--data-dir", str(REHEARSAL), "--n", "16", "--out", str(out)],
+                          capture_output=True, text=True, timeout=600)
+    assert done.returncode == 0, (done.stdout + done.stderr)[-3000:]
+    report = json.loads(out.read_text())
+    assert report["questions"] == 16 and report["identical_answers"] == 16 and report["identical_retrieved_facts"] == 16
+    assert report["decoding"] == {"constraint": "retrieved", "prior": {"kind": "score", "weight": 6, "fixed": 0},
+                                  "retriever": "bm25+dense"}
+    assert report["differences"] == []
+
+    # the tool behind it, with other decodings
+    questions = tmp_path / "q.txt"
+    questions.write_text("Onde o Téo mora?\nWhat is his job?\n", encoding="utf-8")
+    for flags, expect in ((["--no-prior"], {"constraint": "retrieved", "prior": None}),
+                          (["--free", "--lexical"], {"constraint": None, "retriever": "bm25"}),
+                          (["--closed"], {"mode": "closed", "constraint": "kb", "facts": []})):
+        asked = subprocess.run([node, str(ENGINE / "tools" / "ask.mjs"), str(TINY), "--questions", str(questions),
+                                "--wasm", str(KERNEL), *flags], capture_output=True, text=True, timeout=120)
+        assert asked.returncode == 0, asked.stderr[-2000:]
+        rows = [json.loads(line) for line in asked.stdout.splitlines()]
+        assert [r["question"] for r in rows] == ["Onde o Téo mora?", "What is his job?"]
+        assert all(r[k] == v for r in rows for k, v in expect.items()), rows
 
 
 # --------------------------------------------------------------------------------------- ONNX (optional)

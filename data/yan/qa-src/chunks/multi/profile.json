@@ -1,0 +1,85 @@
+{
+ "items": [
+  {
+   "id": "multi-professional-overview",
+   "facts": [
+    "profile-001",
+    "profile-004"
+   ],
+   "pt": [
+    "Quem é Yan Simmer e como o trabalho de Yan atende desafios de negócio?",
+    "Qual é o foco profissional de Yan e o que Yan cria para empresas?",
+    "Me conta a especialidade de Yan e como Yan transforma problemas empresariais em soluções.",
+    "Queria conhecer o perfil profissional de Yan e os resultados práticos do trabalho de Yan.",
+    "Yan, em que você se especializa e o que entrega para resolver necessidades de negócio?",
+    "Resumo do Yan: atuação profissional e soluções para desafios empresariais?",
+    "Como apresentar Yan a alguém interessado na profissão de Yan e nas aplicações comerciais do trabalho?",
+    "O que define Yan como desenvolvedor e como demandas de empresas viram algo concreto com Yan?"
+   ],
+   "en": [
+    "What does Yan specialize in, and what does Yan create to address business challenges?",
+    "Give me an overview of Yan's professional focus and the business problems Yan turns into working solutions.",
+    "Who is Yan Simmer professionally, and what does Yan build for businesses?",
+    "I'm curious about Yan's areas of expertise and how Yan puts them to practical business use.",
+    "Yan, what's your professional focus, and what do you deliver for business needs?",
+    "Yan's developer profile and business solutions?",
+    "How would you introduce Yan's occupation and its commercial applications to a potential client?",
+    "Where does Yan concentrate technical efforts, and what comes out of tackling a company's challenges?"
+   ]
+  },
+  {
+   "id": "multi-location-languages",
+   "facts": [
+    "profile-002",
+    "profile-003"
+   ],
+   "pt": [
+    "Onde Yan mora, qual horário segue e quais idiomas fala?",
+    "Qual é a base de Yan, o fuso de trabalho e o nível nos idiomas?",
+    "Me conta a localização de Yan, o horário de trabalho de referência e as línguas que domina.",
+    "Yan, de onde você trabalha, em qual fuso e como é seu domínio de idiomas?",
+    "Queria saber onde Yan está baseado e quais línguas fala, com níveis e fuso.",
+    "Localização, fuso e proficiência linguística do Yan?",
+    "Pra conversar com Yan, que cidade, referência de relógio e capacidades de comunicação devo considerar?",
+    "Ao organizar uma conversa com Yan, como situar geograficamente Yan e alinhar relógios e língua?"
+   ],
+   "en": [
+    "Where is Yan based, what time zone does Yan work in, and which languages does Yan speak?",
+    "What's Yan's location, working time zone, and proficiency in each language?",
+    "Tell me where Yan lives, the time zone Yan follows, and Yan's language skills.",
+    "Yan, where do you work from, which time zone applies, and how fluent are you in your languages?",
+    "I'd like Yan's geographical base, time zone, and spoken languages with proficiency levels.",
+    "Yan location, work time zone, and language abilities?",
+    "For a conversation with Yan, how should I account for geography, clock differences, and linguistic fluency?",
+    "Before contacting Yan, what should I know about Yan's whereabouts, local clock, and communication capabilities?"
+   ]
+  },
+  {
+   "id": "multi-code-contributions",
+   "facts": [
+    "profile-009",
+    "profile-010"
+   ],
+   "pt": [
+    "Em quais camadas Yan contribui com código e quais exemplos comprovam melhor essas contribuições?",
+    "Que partes dos sistemas Yan altera e onde estão as evidências mais fortes no código?",
+    "Me mostra o alcance técnico das contribuições de Yan e os exemplos concretos de maior destaque.",
+    "Queria entender as camadas em que Yan programa e quais trabalhos sustentam melhor essa experiência.",
+    "Yan, quais partes do software recebem seu código e que contribuições demonstram melhor seu trabalho?",
+    "Contribuições de Yan: abrangência no sistema e principais evidências?",
+    "Ao examinar o histórico de Yan, que frentes de implementação aparecem e quais realizações merecem atenção especial?",
+    "Onde a participação de Yan aparece numa aplicação e que registros concretos dão mais peso a essa atuação?"
+   ],
+   "en": [
+    "Which software layers does Yan contribute to, and what are the strongest examples in Yan's code?",
+    "Show me the breadth of Yan's code contributions and the clearest evidence supporting that work.",
+    "What parts of a system does Yan modify, and which contributions stand out most?",
+    "I'm interested in Yan's implementation scope and the concrete work that best demonstrates Yan's experience.",
+    "Yan, where across the software do you contribute, and what code changes best demonstrate your work?",
+    "Yan's contribution coverage and strongest code evidence?",
+    "When reviewing Yan's development history, which technical areas appear, and what accomplishments deserve particular attention?",
+    "How widely does Yan's programming reach through an application, and which recorded achievements carry the most weight?"
+   ]
+  }
+ ]
+}

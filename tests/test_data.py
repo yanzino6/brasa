@@ -12,9 +12,11 @@ from brasa.config import DataConfig, PromptConfig
 from brasa.data import (
     BatchSampler,
     DataError,
+    Example,
     add_noise,
     build_examples,
     build_prompt,
+    drop_words,
     load_dataset,
     make_example,
     tokenizer_texts,
@@ -33,7 +35,8 @@ def qa(rid="q1", **over):
 def test_rehearsal_corpus_respects_the_contract(dataset):
     stats = dataset.stats()
     assert stats["facts"] == 30 and stats["topics"] == 9
-    assert set(stats["splits"]) == {"train", "val", "test"}
+    assert set(stats["splits"]) == {"train", "val", "test", "final"}
+    assert stats["splits"]["final"]["n"] == 0  # the rehearsal corpus has no untouched slice
     for split in ("train", "val", "test"):
         assert stats["splits"][split]["by_lang"]["pt"] == stats["splits"][split]["by_lang"]["en"]
     assert set(stats["splits"]["test"]["by_kind"]) == {"single", "multi", "chitchat", "oos", "meta"}
@@ -234,6 +237,33 @@ def test_question_noise(tok):
     assert any(n == n.lower() for n in noisy) and any("é" not in n for n in noisy)
 
 
+def test_word_dropout_keeps_part_of_the_question(dataset, tok, retriever):
+    rng = random.Random(0)
+    q = "Em que cidade o Téo mora hoje em dia?"
+    dropped = {drop_words(q, rng) for _ in range(60)}
+    assert q not in dropped and len(dropped) > 5
+    for d in dropped:
+        words = d.split()
+        assert 2 <= len(words) < len(q.split())
+        it = iter(q.split())
+        assert all(w in it for w in words), "the words that stay keep their order"
+    assert drop_words("Oi tudo", rng) == "Oi tudo" and drop_words(q, rng, rate=0.0) == q
+
+    plain, _ = build_examples(dataset, "val", tok, retriever, DataConfig(variants=6, noise_prob=0.0), 384, seed=0)
+    again, _ = build_examples(dataset, "val", tok, retriever,
+                              DataConfig(variants=6, noise_prob=0.0, word_dropout_prob=0.0), 384, seed=0)
+    assert [e.ids for e in plain] == [e.ids for e in again], "off by default: the examples do not change"
+    cfg = DataConfig(variants=6, noise_prob=0.0, open_book_prob=0.0, word_dropout_prob=1.0)
+    shorter, _ = build_examples(dataset, "val", tok, retriever, cfg, 384, seed=0)
+    closed, _ = build_examples(dataset, "val", tok, retriever,
+                               DataConfig(variants=6, noise_prob=0.0, open_book_prob=0.0), 384, seed=0)
+    pairs = list(zip(shorter, closed, strict=True))
+    assert all(len(a.ids) <= len(b.ids) for a, b in pairs) and any(len(a.ids) < len(b.ids) for a, b in pairs)
+    assert all(a.ids[a.answer_start:] == b.ids[b.answer_start:] for a, b in pairs), "the answer never changes"
+    assert all(a.ids == b.ids for a, b in pairs[::6]) and all(a.ids == b.ids for a, b in pairs[1::6]), \
+        "the two clean variants of every record stay clean"
+
+
 def test_small_dataset_helper_is_valid(tmp_path):
     ds = load_dataset(small_dataset(tmp_path))
     assert len(ds.facts) == 6 and len(ds.split("test")) == 13
@@ -270,3 +300,51 @@ def test_counterfactual_examples_copy_from_context(dataset, tok, retriever):
         answer = tok.decode(a.ids[a.answer_start : -1])
         prompt = tok.decode(a.ids[: a.answer_start])
         assert answer in prompt  # the rewritten answer is present, verbatim, in the context
+
+
+def test_cross_fitted_contexts_come_from_an_index_that_never_saw_the_question(tok, dataset):
+    from brasa.data import fold_of, fold_retrievers
+    from brasa.retrieval import Bm25Retriever
+
+    assert fold_of("fact-pt-03", 4) == fold_of("fact-pt-03-w", 4), "a question and its wrapped copy stay together"
+    assert {fold_of(f"r{i}", 4) for i in range(200)} == {0, 1, 2, 3}
+    n = 3
+    folds = fold_retrievers(dataset, n, lambda skip: Bm25Retriever.from_dataset(dataset, skip=skip))
+    full = Bm25Retriever.from_dataset(dataset)
+    train = [r for r in dataset.split("train") if len(r.facts) == 1]
+
+    def recall_at_1(pick) -> float:
+        return sum(pick(r).search(r.q, 1)[0].id == r.facts[0] for r in train) / len(train)
+
+    seen, unseen = recall_at_1(lambda r: full), recall_at_1(lambda r: folds[fold_of(r.id, n)])
+    assert seen > 0.95, "the full index holds the question itself: retrieval is trivial"
+    assert unseen < seen - 0.05, "its own fold does not: retrieval is as uncertain as for a new question"
+    other = recall_at_1(lambda r: folds[(fold_of(r.id, n) + 1) % n])
+    assert other > unseen, "the other folds do hold it"
+
+    cfg = DataConfig(variants=2)
+    plain, plain_stats = build_examples(dataset, "train", tok, full, cfg, 384, seed=0)
+    fitted, fitted_stats = build_examples(dataset, "train", tok, full, cfg, 384, seed=0, folds=folds)
+    assert fitted_stats["open_book_gold_in_context"] < plain_stats["open_book_gold_in_context"]
+    assert [e.ids for e in plain if not e.open_book] == [e.ids for e in fitted if not e.open_book]
+    again, _ = build_examples(dataset, "train", tok, full, cfg, 384, seed=0, folds=folds)
+    assert [e.ids for e in again] == [e.ids for e in fitted], "deterministic"
+
+
+def test_importance_weights_change_how_often_an_example_is_drawn(tok, dataset, retriever):
+    cfg = DataConfig(variants=1, importance_power=2.0)
+    examples, _ = build_examples(dataset, "train", tok, None, cfg, 384, seed=0)
+    by_record = {r.id: r for r in dataset.split("train")}
+    for ex in examples[:50]:
+        rec = by_record[ex.record]
+        importance = max((dataset.facts[f].importance for f in rec.facts), default=5.0)
+        assert ex.weight == pytest.approx((importance / 5.0) ** 2)
+    assert len({ex.weight for ex in examples}) > 1, "the rehearsal facts have different importances"
+    uniform, _ = build_examples(dataset, "train", tok, None, DataConfig(variants=1), 384, seed=0)
+    assert all(ex.weight == 1.0 for ex in uniform)
+
+    heavy = [Example([1, 2, 3, 4], 2, weight=9.0), *[Example([1, 5, 6, 7], 2) for _ in range(9)]]
+    sampler = BatchSampler(heavy, 16, 8, pad_id=0, seed=0)
+    drawn = np.concatenate([sampler.batch(step)[0][:, 1] for step in range(300)])
+    assert 0.4 < (drawn == 2).mean() < 0.6, "one example with half of the total weight is half of the rows"
+    assert BatchSampler(heavy[1:], 16, 8, pad_id=0).weighted is False

@@ -55,9 +55,12 @@ export class BrasaClient {
     return this._request({ type: 'tokenize', text, allowSpecial }).done.then(({ text: normalized, tokens }) => ({ text: normalized, tokens }));
   }
 
-  /** The k best facts for a query. */
-  retrieve(query, k, lang) {
-    return this._request({ type: 'retrieve', query, k, lang }).done.then((m) => m.hits);
+  /**
+   * The k best facts for a query. With an index that carries fact vectors the ranking is BM25 fused with the
+   * model's own (one short forward pass); { dense: false } keeps the lexical ranking alone.
+   */
+  retrieve(query, k, lang, { dense } = {}) {
+    return this._request({ type: 'retrieve', query, k, lang, dense }).done.then((m) => m.hits);
   }
 
   /** Ask a question. Returns { id, done, abort }; done resolves with the "done" message. */

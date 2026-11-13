@@ -1,0 +1,70 @@
+{
+ "pt": {
+  "val": [
+   "Qual é a altura de Yan?",
+   "Yan usa óculos?",
+   "Como Yan costuma se vestir?",
+   "Yan pretende ter filhos algum dia?",
+   "Existe algum país onde Yan gostaria de morar?",
+   "De que cor são os olhos de Yan?",
+   "Quanto Yan pesa?",
+   "Casar faz parte dos planos de Yan?"
+  ],
+  "test": [
+   "Yan é alto?",
+   "Qual é a cor do cabelo de Yan?",
+   "O cabelo de Yan é curto ou comprido?",
+   "Yan tem barba?",
+   "Que tamanho de camiseta Yan veste?",
+   "No dia a dia, Yan prefere roupas de quais cores?",
+   "Yan tem alguma tatuagem?",
+   "Como é a aparência física de Yan?",
+   "Qual número Yan calça?",
+   "Yan costuma usar boné?",
+   "Para uma festa, que roupa Yan escolheria?",
+   "Yan gosta de usar terno?",
+   "Morar fora do Brasil é um sonho de Yan?",
+   "Em que país Yan pensa em viver no futuro?",
+   "Yan quer se mudar definitivamente para o exterior?",
+   "Há planos de Yan voltar ao Brasil depois de morar fora?",
+   "Daqui a dez anos, onde Yan gostaria de morar?",
+   "Yan sonha em ser pai?",
+   "Quantos filhos Yan gostaria de ter?",
+   "Que tipo de casamento Yan gostaria de celebrar?"
+  ]
+ },
+ "en": {
+  "val": [
+   "How tall is Yan?",
+   "Does Yan wear glasses?",
+   "What does Yan usually wear?",
+   "Would Yan like to have children someday?",
+   "Is there a country Yan dreams of living in?",
+   "What color are Yan's eyes?",
+   "How much does Yan weigh?",
+   "Does Yan hope to get married someday?"
+  ],
+  "test": [
+   "Does Yan have curly hair?",
+   "What is Yan's natural hair color?",
+   "Has Yan grown a beard?",
+   "What shoe size does Yan wear?",
+   "Is Yan tall or short?",
+   "Any tattoos on Yan?",
+   "How would you describe Yan's appearance?",
+   "What size jacket does Yan wear?",
+   "Would Yan wear a suit to a party?",
+   "Which clothing brands does Yan like?",
+   "Does Yan prefer jeans or shorts?",
+   "What kind of haircut does Yan have?",
+   "Would Yan ever move overseas permanently?",
+   "Where does Yan picture himself living in ten years?",
+   "Is Yan interested in settling down outside Brazil?",
+   "Which country would Yan choose for a future home?",
+   "Would Yan want to return to Brazil after living abroad?",
+   "How many kids would Yan like to have?",
+   "What kind of wedding would Yan want?",
+   "At what point in life would Yan want to become a parent?"
+  ]
+ }
+}

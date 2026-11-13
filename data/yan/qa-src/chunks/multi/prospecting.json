@@ -1,0 +1,112 @@
+{
+ "items": [
+  {
+   "id": "multi-prospecting-overview",
+   "facts": [
+    "prospecting-001",
+    "prospecting-005"
+   ],
+   "pt": [
+    "O que é a solução de prospecção inteligente e qual foi a participação de Yan?",
+    "Me conta sobre o case de prospecção inteligente e o trabalho de Yan nos agentes.",
+    "Queria entender a proposta da prospecção inteligente e a responsabilidade de Yan no desenvolvimento.",
+    "Qual é a finalidade da prospecção inteligente e o que você fez nesse case, Yan?",
+    "Prospecção inteligente: visão geral da solução e atuação de Yan?",
+    "Explique o case de prospecção inteligente e a contribuição técnica de Yan.",
+    "Como você apresentaria a prospecção inteligente a alguém interessado tanto no produto quanto no papel de Yan?",
+    "Em que consiste a prospecção inteligente, e quais partes ficaram a cargo de Yan?"
+   ],
+   "en": [
+    "What is Yan's intelligent prospecting solution, and what was his role?",
+    "Give me an overview of intelligent prospecting and Yan's contribution to the agents.",
+    "I'd like to understand the intelligent prospecting case and Yan's involvement in building the solution.",
+    "Yan, what did you work on in intelligent prospecting, and what does the solution do?",
+    "Intelligent prospecting: project purpose and Yan's responsibilities?",
+    "Explain the intelligent prospecting offering and Yan's architectural contribution.",
+    "How would you introduce intelligent prospecting to a recruiter curious about what Yan personally handled?",
+    "Describe the scope of intelligent prospecting alongside the part Yan played in its creation."
+   ]
+  },
+  {
+   "id": "multi-prospecting-problem-response",
+   "facts": [
+    "prospecting-003",
+    "prospecting-002"
+   ],
+   "pt": [
+    "Qual problema a prospecção inteligente enfrenta e como a IA ajuda a resolver?",
+    "Me explica a dificuldade comercial por trás da prospecção inteligente e o uso da IA.",
+    "Prospecção inteligente: quais obstáculos motivaram a solução e qual é a função da inteligência artificial?",
+    "Queria saber o que atrapalhava as vendas e como a prospecção inteligente ajuda com IA.",
+    "Yan, por que sua prospecção inteligente era necessária e onde você aplicou inteligência artificial?",
+    "Como a prospecção inteligente usa IA para lidar com as dificuldades de escolher e abordar contatos?",
+    "Que dor comercial deu origem à prospecção inteligente, e que apoio inteligente a solução oferece?",
+    "O que tornava o trabalho comercial complicado antes da prospecção inteligente, e de que maneira a tecnologia auxilia?"
+   ],
+   "en": [
+    "What problem does intelligent prospecting address, and how does AI help?",
+    "Explain the sales difficulties behind Yan's intelligent prospecting solution and the role of artificial intelligence.",
+    "Intelligent prospecting: original pain points and AI support?",
+    "I'd like to know why intelligent prospecting was needed and what AI does for the sales team.",
+    "Yan, what challenges did your intelligent prospecting solution target, and how did you apply AI?",
+    "How does intelligent prospecting use artificial intelligence to tackle difficulties with choosing and approaching contacts?",
+    "Which everyday sales frustrations prompted intelligent prospecting, and what assistance does the technology provide?",
+    "Describe the obstacles facing salespeople that intelligent prospecting tackles through machine intelligence."
+   ]
+  },
+  {
+   "id": "multi-prospecting-data-continuity",
+   "facts": [
+    "prospecting-012",
+    "prospecting-013"
+   ],
+   "pt": [
+    "O que o banco da prospecção inteligente organiza e como as automações aproveitam esses dados entre execuções?",
+    "Como a prospecção inteligente guarda a evolução dos contatos e recupera contexto nas automações?",
+    "Explique os registros de contatos da prospecção inteligente e a ligação do banco com os fluxos.",
+    "Prospecção inteligente: dados armazenados e continuidade das automações?",
+    "Yan, como seu banco de prospecção inteligente organiza contatos e permite retomar o trabalho entre execuções?",
+    "Queria entender o acompanhamento dos contatos e o acesso das automações ao histórico na prospecção inteligente.",
+    "De que maneira a prospecção inteligente mantém a trajetória comercial disponível quando um fluxo roda novamente?",
+    "Que memória dos contatos sustenta a prospecção inteligente, e como essa memória chega às rotinas automáticas?"
+   ],
+   "en": [
+    "What does the intelligent prospecting database organize, and how do automations use those records across runs?",
+    "How does intelligent prospecting store contact progress and retrieve context for automation?",
+    "Explain contact tracking in intelligent prospecting and the database connection that supports workflow continuity.",
+    "Intelligent prospecting: stored contact information and automation access?",
+    "Yan, how does your intelligent prospecting database track contacts and let workflows pick up where they left off?",
+    "I'd like to understand intelligent prospecting's contact records and how workflows read and update them.",
+    "What gives intelligent prospecting a memory of each sales relationship when another automated cycle begins?",
+    "Describe how intelligent prospecting preserves a contact's journey and carries that knowledge into subsequent processing."
+   ]
+  },
+  {
+   "id": "multi-prospecting-build-impact",
+   "facts": [
+    "prospecting-006",
+    "prospecting-008"
+   ],
+   "pt": [
+    "O que Yan construiu para prospecção ativa, usando quais recursos, e que resultado comercial relatou?",
+    "Me conta como Yan implementou o agente de prospecção e qual foi a contribuição para contratos fechados.",
+    "Agente de prospecção de Yan: construção, integração e impacto comercial declarado?",
+    "Queria saber a base técnica do agente de prospecção de Yan e o resultado atribuído ao trabalho.",
+    "Yan, como você criou seu agente de prospecção e que retorno comercial você relatou?",
+    "Qual ferramenta e integração Yan usou no agente de prospecção, e que impacto houve nos contratos?",
+    "Do desenvolvimento às vendas, o que Yan afirma ter realizado com o agente de prospecção ativa?",
+    "Em que se apoia o agente de prospecção feito por Yan, e qual conquista financeira Yan associa à solução?"
+   ],
+   "en": [
+    "What did Yan build for active prospecting, what powered the agent, and what sales result did he report?",
+    "Explain how Yan implemented the prospecting agent and its reported contribution to closed deals.",
+    "Yan's prospecting agent: build approach, integration, and commercial impact?",
+    "I'd like the technical background of Yan's prospecting agent alongside the business outcome he described.",
+    "Yan, how did you create your prospecting agent, and what sales results did you report?",
+    "Which tool and integration supported Yan's prospecting agent, and how did the agent contribute commercially?",
+    "From implementation to revenue, what does Yan claim to have achieved with the active prospecting agent?",
+    "Describe the foundations of Yan's prospecting agent and the financial accomplishment Yan attributes to that work."
+   ]
+  }
+ ]
+}

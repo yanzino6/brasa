@@ -5,9 +5,14 @@
     uv run python -m brasa.sample --export runs/brasa-12m/export --format i8    # the exported int8 weights
     uv run python -m brasa.sample --run runs/smoke --closed-book --temperature 0.7 --top-p 0.9
 
-A question goes through the same steps as in the browser: retrieve facts from the knowledge base, build
-the prompt, generate until <|eos|> with the KV cache. --show-context prints what the retriever found and
---show-prompt the exact token sequence the model receives.
+A question goes through the same steps as in the browser: retrieve facts from the knowledge base (BM25,
+fused with the model's own ranking when the run or the exported index has one; --lexical switches that
+off), build the prompt, and answer. By default the answer is constrained like on the site: open-book it can
+only be made of the retrieved facts or be a fixed answer, with the retriever's ranking as a prior on that
+choice when the export ships one (--prior-weight overrides it, 0 = the model alone decides); closed-book it
+can be any fact of the knowledge base. --constrain off gives the model's free generation with the KV cache
+(and sampling, if asked).
+--show-context prints what the retriever found and --show-prompt the exact token sequence the model receives.
 
 Inside the chat: /open and /closed switch the mode, /context toggles the retrieved facts, /quit leaves.
 """
@@ -24,6 +29,7 @@ from pathlib import Path
 import torch
 
 from .config import EOS, PromptConfig
+from .constrain import AnswerTrie, constrained_answers, ranking_priors
 from .data import build_prompt
 from .model import GPT
 from .retrieval import Bm25Retriever
@@ -48,17 +54,40 @@ def load_export(export_dir: str | Path, fmt: str = "i8"):
 def answer(model: GPT, tok: BPETokenizer, retriever, question: str, prompt_cfg: PromptConfig, *,
            open_book: bool = True, max_new_tokens: int | None = None, temperature: float = 0.0,
            top_k: int | None = None, top_p: float | None = None, repetition_penalty: float = 1.0,
-           generator: torch.Generator | None = None, on_text=None) -> dict:
+           generator: torch.Generator | None = None, on_text=None, constrain: str | None = None,
+           prior: dict | None = None) -> dict:
     """Answer one question. on_text(piece) is called with each piece of text as soon as it is complete.
 
-    Returns {"answer", "hits", "facts_used", "prompt_ids", "tokens", "seconds", "tokens_per_second"}."""
+    constrain: None = free generation; "retrieved" = greedy, restricted to the facts in the prompt and the
+    fixed answers; "kb" = greedy, restricted to any fact of the knowledge base (needs a retriever: its index
+    is the knowledge base).
+    prior: with "retrieved", how much the retriever's ranking weighs in the choice, {"kind", "weight", "fixed"};
+    None = the prior stored in the index ("answers" -> "prior"), if any; {} = none.
+    Returns {"answer", "hits", "facts_used", "prompt_ids", "tokens", "seconds", "tokens_per_second", "prior"}."""
     device = next(model.parameters()).device
     hits = retriever.search(question, prompt_cfg.max_facts) if open_book and retriever is not None else []
     ids, used = build_prompt(tok, question, [h.text for h in hits], model.cfg.block_size, prompt_cfg)
+    t0 = time.perf_counter()
+    if constrain:
+        if constrain not in ("retrieved", "kb") or retriever is None:
+            raise ValueError("constrain is 'retrieved' or 'kb' and needs a retrieval index")
+        only = {h.id for h in hits[:used]} if constrain == "retrieved" and open_book else None
+        if prior is None:
+            prior = (retriever.index.get("answers") or {}).get("prior")
+        prior = {"kind": "score", "weight": 0.0, "fixed": 0.0, **(prior or {})} if only is not None else None
+        ranked = ranking_priors(hits[:used], prior["weight"], prior["kind"]) if prior else None
+        trie = AnswerTrie.from_index(retriever.index, tok, None, only=only, priors=ranked,
+                                     fixed_prior=prior["fixed"] if prior else 0.0)
+        texts, token_ids = constrained_answers(model, tok, [ids], trie, max_new_tokens or prompt_cfg.answer_reserve,
+                                               device, return_ids=True)
+        if on_text and texts[0]:
+            on_text(texts[0])
+        seconds = time.perf_counter() - t0
+        return {"answer": texts[0], "hits": hits[:used], "facts_used": used, "prompt_ids": ids, "prior": prior,
+                "tokens": token_ids[0], "seconds": seconds, "tokens_per_second": len(token_ids[0]) / max(seconds, 1e-9)}
     decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
     eos = tok.special_ids[EOS]
     pieces, tokens = [], []
-    t0 = time.perf_counter()
     stream = model.stream(torch.tensor([ids], device=device), max_new_tokens or prompt_cfg.answer_reserve,
                           temperature=temperature, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty,
                           stop_ids=(eos,), generator=generator)
@@ -79,7 +108,7 @@ def answer(model: GPT, tok: BPETokenizer, retriever, question: str, prompt_cfg: 
             on_text(tail)
     seconds = time.perf_counter() - t0
     return {"answer": "".join(pieces).strip(), "hits": hits[:used], "facts_used": used, "prompt_ids": ids,
-            "tokens": tokens, "seconds": seconds, "tokens_per_second": len(tokens) / max(seconds, 1e-9)}
+            "prior": None, "tokens": tokens, "seconds": seconds, "tokens_per_second": len(tokens) / max(seconds, 1e-9)}
 
 
 def main(argv=None) -> None:
@@ -92,6 +121,14 @@ def main(argv=None) -> None:
     ap.add_argument("--format", default="i8", choices=["i8", "f16", "f32"], help="with --export")
     ap.add_argument("-q", "--question", action="append", help="ask this and exit (repeatable)")
     ap.add_argument("--closed-book", action="store_true", help="do not retrieve facts into the prompt")
+    ap.add_argument("--constrain", default="auto", choices=["auto", "retrieved", "kb", "off"],
+                    help="auto: the retrieved facts open-book, the whole knowledge base closed-book; "
+                         "off: free generation")
+    ap.add_argument("--prior-weight", type=float, default=None,
+                    help="how much the retriever's ranking weighs in a constrained open-book answer "
+                         "(default: the prior shipped with the export or chosen for the run; 0 = none)")
+    ap.add_argument("--lexical", action="store_true",
+                    help="rank the facts with BM25 alone, even when the model has its own ranking")
     ap.add_argument("--max-new-tokens", type=int, default=None, help="default: the answer reserve of the model")
     ap.add_argument("--temperature", type=float, default=0.0, help="0 = greedy")
     ap.add_argument("--top-k", type=int, default=0, help="0 = off")
@@ -105,26 +142,44 @@ def main(argv=None) -> None:
     args = ap.parse_args(argv)
 
     if args.run:
-        from .evaluate import load_run
+        from .evaluate import load_run, retriever_for
 
         model, tok, retriever, run = load_run(args.run, args.checkpoint, args.device)
         prompt_cfg = PromptConfig(**run["train_config"]["data"]["prompt"])
+        stored = (run.get("decoding") or {}).get("prior")
+        if not args.lexical:
+            retriever, _ = retriever_for(run, retriever, model, tok, args.device)
     else:
         model, tok, retriever, prompt_cfg = load_export(args.export, args.format)
         model.to(args.device)
+        stored = ((retriever.index.get("answers") or {}).get("prior")) if retriever is not None else None
+        if retriever is not None and retriever.dense is not None and not args.lexical:
+            from .encoder import DenseRetriever
+
+            retriever = DenseRetriever.from_index(model, tok, retriever, args.device)
+    ranking = "bm25+dense" if getattr(retriever, "fused", None) is not None else "bm25" if retriever else None
+    prior = {**(stored or {})}
+    if args.prior_weight is not None:
+        prior = {"kind": "score", **prior, "weight": args.prior_weight}
     generator = torch.Generator(device=args.device).manual_seed(args.seed)
     state = {"open": not args.closed_book and retriever is not None, "context": args.show_context}
 
     def ask(question: str) -> None:
+        constrain = args.constrain
+        if constrain == "auto":
+            constrain = "off" if retriever is None else "retrieved" if state["open"] else "kb"
         out = answer(
             model, tok, retriever, question, prompt_cfg, open_book=state["open"], max_new_tokens=args.max_new_tokens,
             temperature=args.temperature, top_k=args.top_k or None, top_p=args.top_p,
             repetition_penalty=args.repetition_penalty, generator=generator,
             on_text=None if args.json else lambda piece: (sys.stdout.write(piece), sys.stdout.flush()),
+            constrain=None if constrain == "off" else constrain, prior=prior,
         )
         if args.json:
             print(json.dumps({"question": question, "answer": out["answer"],
                               "mode": "open" if state["open"] else "closed",
+                              "constrain": None if constrain == "off" else constrain, "prior": out["prior"],
+                              "retriever": ranking if state["open"] else None,
                               "facts": [h.id for h in out["hits"]], "tokens": len(out["tokens"]),
                               "tokens_per_second": round(out["tokens_per_second"], 1)}, ensure_ascii=False))
             return

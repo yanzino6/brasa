@@ -3,23 +3,29 @@
 
     uv run python scripts/build_corpus.py --data-dir data/yan            # writes data/yan/qa/*.jsonl
     uv run python scripts/build_corpus.py --data-dir data/yan --k 4 --out runs/yan-k4    # ablation: 4 paraphrases
+    uv run python scripts/build_corpus.py --data-dir data/yan --min-importance 4 --out runs/yan-imp4   # smaller KB
 
 Inputs (see scripts/write_questions.py, which produces the qa-src files with an LLM teacher):
 
     kb/facts.jsonl, kb/topics.json     the curated public knowledge base
     qa-src/facts.jsonl                 {"f": fact id, "pt": [14 questions], "en": [14 questions]}
     qa-src/multi.jsonl                 {"id", "facts": [ids], "pt": [8], "en": [8]}
-    qa-src/chitchat.jsonl, oos.jsonl   {"cat", "pt": {"train","val","test"}, "en": {...}}
+    qa-src/chitchat.jsonl, oos.jsonl   {"cat", "pt": {"train","val","test"[,"final"]}, "en": {...}}
     qa-src/canonical.json              the fixed answers for chit-chat and for declined questions
+    qa-fallback/chitchat.jsonl, oos.jsonl   same format, hand-written (scripts/fallback_questions.py); used for a
+                                       category only while its qa-src file is empty, and reported in corpus.json
 
 Rules:
 
 * The answer to a fact question is the fact sentence itself, in the language of the question; the answer to
   a multi-fact question is its fact sentences joined in order.
 * Per fact and language the first 11 questions are training paraphrases (the first --k are used), the 12th
-  is the validation question and the last two are test questions. Their phrasings never occur in training:
-  any held-out question that also exists as a training question is dropped and counted.
-* Every training question also appears once wrapped in a greeting or a polite ending.
+  is the validation question, the 13th the TEST question and the 14th the FINAL question. Their phrasings never
+  occur in training: any held-out question that also exists as a training question is dropped and counted.
+* The "final" split is the untouched slice: experiments are compared on "test" (so the test numbers are
+  optimistic by selection) and "final" is read once, for the released model (brasa.evaluate --splits final).
+  Chit-chat and out-of-scope sources without a "final" list give every second test question to it.
+* Every training question also appears once wrapped in a greeting or a polite ending (not the chit-chat).
 * A question that maps to two different answers is ambiguous: it is removed everywhere and counted.
 * key_spans (the numbers and names an answer must contain) are extracted from the answer text.
 """
@@ -35,7 +41,7 @@ import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
 
-N_TRAIN, VAL_AT = 11, 11          # positions 0..10 train, 11 validation, 12..13 test
+N_TRAIN, VAL_AT, TEST_AT = 11, 11, 12   # positions 0..10 train, 11 validation, 12 test, 13 final
 MULTI_TRAIN, MULTI_VAL_AT = 6, 6  # positions 0..5 train, 6 validation, 7 test
 
 PREFIXES = {
@@ -59,12 +65,15 @@ def read_jsonl(p: Path) -> list[dict]:
     return [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()] if p.exists() else []
 
 
-NUM = re.compile(r"\d+(?:[.,]\d+)*%?")
+# a number with its unit letters ("100K", "8GB"); not the 8 of "n8n" or the 16 of "VGG16", which are names
+NUM = re.compile(r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)*(?:%|[A-Za-z]+)?")
 NAME = re.compile(r"\b(?:[A-Z][a-z]+[A-Z][A-Za-z0-9]*|[A-Z]{2,}[A-Za-z0-9-]*|[A-Za-z]+[0-9]+[A-Za-z0-9-]*|[a-z]+\.[a-z]{2,4})\b")
 
 
 def key_spans(answer: str, limit: int = 5) -> list[str]:
-    """Numbers and code-like names (PyTorch, UFES, VGG16, seer.app) that the answer must reproduce."""
+    """Numbers and code-like names (PyTorch, UFES, VGG16, seer.app, n8n) that the answer must reproduce.
+
+    Every span is a run of whole word tokens of the answer, which is how brasa.evaluate looks for it."""
     out: list[str] = []
     for m in list(NUM.finditer(answer)) + list(NAME.finditer(answer)):
         s = m.group(0).rstrip(".,")
@@ -80,8 +89,10 @@ def wrap(q: str, lang: str, rng: random.Random) -> str:
     return q + rng.choice(SUFFIXES[lang])
 
 
-def build(data_dir: Path, k: int, seed: int) -> tuple[dict[str, list[dict]], dict]:
-    facts = {f["id"]: f for f in read_jsonl(data_dir / "kb/facts.jsonl")}
+def build(data_dir: Path, k: int, seed: int, min_importance: int = 0) -> tuple[dict[str, list[dict]], dict]:
+    """(records per qa file, statistics). With min_importance, facts below it leave the knowledge base and
+    every question that needs one of them goes with them (the knowledge-base size ablation)."""
+    facts = {f["id"]: f for f in read_jsonl(data_dir / "kb/facts.jsonl") if f.get("importance", 0) >= min_importance}
     src = data_dir / "qa-src"
     canon = json.loads((src / "canonical.json").read_text(encoding="utf-8"))
     rows: list[dict] = []  # file, id, lang, q, a, facts, kind, split
@@ -98,7 +109,7 @@ def build(data_dir: Path, k: int, seed: int) -> tuple[dict[str, list[dict]], dic
         kind = "meta" if f["topic"] == "brasa" else "single"
         for lang in ("pt", "en"):
             for n, q in enumerate(it[lang]):
-                split = "train" if n < N_TRAIN else "val" if n == VAL_AT else "test"
+                split = "train" if n < N_TRAIN else "val" if n == VAL_AT else "test" if n == TEST_AT else "final"
                 if split == "train" and n >= k:
                     continue
                 add("facts", f"{f['id']}-{lang}-{n:02d}", lang, q, f[lang], [f["id"]], kind, split)
@@ -110,11 +121,17 @@ def build(data_dir: Path, k: int, seed: int) -> tuple[dict[str, list[dict]], dic
             for n, q in enumerate(it[lang]):
                 split = "train" if n < MULTI_TRAIN else "val" if n == MULTI_VAL_AT else "test"
                 add("multi", f"{it['id']}-{lang}-{n:02d}", lang, q, answer, list(it["facts"]), "multi", split)
+    sources = {}
     for file, kind in (("chitchat", "chitchat"), ("oos", "oos")):
-        for c in read_jsonl(src / f"{file}.jsonl"):
+        cats = read_jsonl(src / f"{file}.jsonl")
+        sources[file] = "qa-src" if cats else "qa-fallback"
+        for c in cats or read_jsonl(data_dir / "qa-fallback" / f"{file}.jsonl"):
             for lang in ("pt", "en"):
-                for split in ("train", "val", "test"):
-                    for n, q in enumerate(c[lang].get(split, [])):
+                lists = dict(c[lang])
+                if "final" not in lists:  # no untouched slice in the source: every second test question
+                    lists["test"], lists["final"] = lists.get("test", [])[::2], lists.get("test", [])[1::2]
+                for split in ("train", "val", "test", "final"):
+                    for n, q in enumerate(lists.get(split, [])):
                         add(file, f"{c['cat']}-{lang}-{split}-{n:03d}", lang, q, canon[c["cat"]][lang], [], kind, split)
 
     # one question, one answer: ambiguous questions go; held-out questions never repeat a training phrasing
@@ -142,14 +159,15 @@ def build(data_dir: Path, k: int, seed: int) -> tuple[dict[str, list[dict]], dic
         rec = {"id": r["id"], "lang": r["lang"], "q": r["q"], "a": r["a"], "facts": r["facts"], "kind": r["kind"],
                "split": r["split"], "key_spans": key_spans(r["a"]) if r["facts"] else []}
         files[r["file"]].append(rec)
-        if r["split"] == "train":
+        if r["split"] == "train" and r["kind"] != "chitchat":  # "Hi, hello" teaches nothing
             w = wrap(r["q"], r["lang"], rng)
             if (r["lang"], norm(w)) not in seen:
                 seen.add((r["lang"], norm(w)))
                 files[r["file"]].append({**rec, "id": r["id"] + "-w", "q": w})
     stats = {
-        "facts_in_kb": len(facts), "facts_without_questions": len(missing), "first_missing": missing[:10],
-        "k": k, "dropped": dict(dropped),
+        "facts_in_kb": len(facts), "min_importance": min_importance,
+        "facts_without_questions": len(missing), "first_missing": missing[:10],
+        "k": k, "dropped": dict(dropped), "chat_sources": sources,
         "records": {f: len(v) for f, v in files.items()},
         "splits": dict(Counter(r["split"] for v in files.values() for r in v)),
         "by_kind": dict(Counter(r["kind"] for v in files.values() for r in v)),
@@ -163,14 +181,20 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="write a complete data directory here instead of <data-dir>/qa")
     ap.add_argument("--k", type=int, default=N_TRAIN, help="training paraphrases per fact and language (1 to 11)")
     ap.add_argument("--seed", type=int, default=1234)
+    ap.add_argument("--min-importance", type=int, default=0,
+                    help="keep only the facts of at least this importance (needs --out: the knowledge base shrinks)")
     args = ap.parse_args()
     data_dir = Path(args.data_dir)
-    files, stats = build(data_dir, max(1, min(N_TRAIN, args.k)), args.seed)
+    if args.min_importance and not args.out:
+        ap.error("--min-importance writes a smaller knowledge base: give it its own directory with --out")
+    files, stats = build(data_dir, max(1, min(N_TRAIN, args.k)), args.seed, args.min_importance)
     out = Path(args.out) if args.out else data_dir
     if args.out:
         (out / "kb").mkdir(parents=True, exist_ok=True)
-        for name in ("facts.jsonl", "topics.json"):
-            shutil.copy(data_dir / "kb" / name, out / "kb" / name)
+        shutil.copy(data_dir / "kb" / "topics.json", out / "kb" / "topics.json")
+        kept_facts = [f for f in read_jsonl(data_dir / "kb/facts.jsonl") if f.get("importance", 0) >= args.min_importance]
+        (out / "kb" / "facts.jsonl").write_text("".join(json.dumps(f, ensure_ascii=False) + "\n" for f in kept_facts),
+                                                encoding="utf-8")
     qa = out / "qa"
     qa.mkdir(parents=True, exist_ok=True)
     for old in qa.glob("*.jsonl"):
@@ -178,10 +202,11 @@ def main() -> None:
     for name, recs in files.items():
         (qa / f"{name}.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
     corpus = {
-        "name": "yan" if args.k >= N_TRAIN else f"yan-k{args.k}", "fictional": False,
+        "name": ("yan" if args.k >= N_TRAIN else f"yan-k{args.k}") + (f"-imp{args.min_importance}" if args.min_importance else ""),
+        "fictional": False,
         "description": "Questions about Yan Simmer written by an LLM teacher from a curated public knowledge base; "
-                       "answers are the curated facts. Held-out validation and test questions use phrasings that "
-                       "never occur in training.",
+                       "answers are the curated facts. Held-out validation, test and final questions use phrasings "
+                       "that never occur in training; the final split is read once, for the released model.",
         "training_paraphrases_per_fact_and_language": min(N_TRAIN, args.k), "build": stats,
     }
     (out / "corpus.json").write_text(json.dumps(corpus, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

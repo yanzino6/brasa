@@ -7,9 +7,12 @@ Files written to --out:
     model.f16.bin     weights as float16
     model.i8.bin      weights as int8 with one scale per output row (the file the site ships)
     tokenizer.json    the BPE merges and special tokens (also embedded in the model header)
-    retrieval.json    the BM25 index over the knowledge base
-    testvec.<fmt>.json  prompts, logits, greedy continuations, attention and sampling fixtures computed by
-                        PyTorch with the weights exactly as the engine sees them after de-quantisation
+    retrieval.json    the BM25 index over the knowledge base; for a run that also ranks the facts with its
+                      own hidden states (train --retrieval-weight), plus one int8 vector per fact computed
+                      with the weights of the default model file ("dense")
+    testvec.<fmt>.json  prompts, logits, greedy continuations (free and constrained to the knowledge base),
+                        attention and sampling fixtures and pooled text vectors computed by PyTorch with
+                        the weights exactly as the engine sees them after de-quantisation
     parity.json       tokenizer, retrieval and prompt fixtures computed by the Python reference (fixtures.py)
     manifest.json     configuration, prompt format, sizes (raw / gzip / brotli) and SHA-256 of every file
 
@@ -45,10 +48,12 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .config import GPTConfig, PromptConfig
+from .config import PAD, GPTConfig, PromptConfig
+from .constrain import AnswerTrie, constrained_answers
 from .data import build_prompt
-from .fixtures import build_parity
+from .fixtures import TRICKY_QUERIES, build_parity
 from .model import GPT
+from .retrieval import Bm25Retriever
 from .tokenizer import BPETokenizer
 
 MAGIC = b"TGPT"
@@ -216,6 +221,54 @@ def test_vectors(model: GPT, prompts: list[list[int]], texts: list[str] | None =
     return {"cases": cases, "inspect": inspect, "sampling": sampling}
 
 
+def constrained_vectors(model: GPT, tok: BPETokenizer, prompts: list[list[int]], index: dict,
+                        max_new_tokens: int) -> list[dict]:
+    """Greedy answers constrained to the knowledge base, for the engine to reproduce token by token.
+
+    The prompts take turns with the three language settings (both, Portuguese only, English only) and
+    with two budgets: the answer reserve of the prompt format (an answer may be cut) and all the room
+    left in the context (the answer ends with <|eos|>, which is not part of "tokens"). Every prompt is
+    decoded three times: with the whole knowledge base allowed ("only": null), with four of its facts
+    ("only": their ids), which is how the browser restricts an answer to the facts it retrieved, and with
+    those four facts carrying a prior ("priors", "fixed_prior"), as when the retriever's ranking counts. The
+    prior is the strongest for the fact the model would otherwise choose last, so that it changes answers."""
+    model = model.eval().float().cpu()
+    fact_ids = list(dict.fromkeys(d["id"] for d in index["docs"]))
+    cases = []
+    for i, prompt in enumerate(prompts):
+        lang = (None, "pt", "en")[i % 3]
+        budget = max_new_tokens if i % 2 else model.cfg.block_size
+        four = [fact_ids[(3 * i + j) % len(fact_ids)] for j in range(min(4, len(fact_ids)))]
+        priors = {f: -1.25 * (len(four) - 1 - j) for j, f in enumerate(four)}
+        for only, prior, fixed_prior in ((None, None, 0.0), (four, None, 0.0), (four, priors, -0.5 * (i % 2))):
+            trie = AnswerTrie.from_index(index, tok, lang, only=None if only is None else set(only), priors=prior,
+                                         fixed_prior=fixed_prior)
+            _, ids = constrained_answers(model, tok, [prompt], trie, budget, "cpu", return_ids=True)
+            case = {"prompt": prompt, "lang": lang, "only": only, "max_new_tokens": budget, "tokens": ids[0],
+                    "text": tok.decode(ids[0])}
+            if prior is not None:
+                case.update(priors=prior, fixed_prior=fixed_prior)
+            cases.append(case)
+    return cases
+
+
+def embed_vectors(model: GPT, tok: BPETokenizer, questions: list[str], facts: list[str]) -> list[dict]:
+    """The model read as an encoder (encoder.py): pooled, normalised final hidden states of a few questions
+    and facts, for Engine.embed to reproduce. Mean pooling, and the last position for every third text."""
+    from .encoder import embed, fact_ids, question_ids
+
+    model = model.eval().float().cpu()
+    pad = tok.special_ids[PAD]
+    sequences = [question_ids(tok, q) for q in questions] + [fact_ids(tok, f) for f in facts]
+    cases = []
+    for i, ids in enumerate(sequences):
+        pooling = "last" if i % 3 == 2 else "mean"
+        with torch.no_grad():
+            vector = embed(model, [ids], pad, "cpu", pooling)[0]
+        cases.append({"tokens": ids, "pooling": pooling, "vector": [float(v) for v in vector]})
+    return cases
+
+
 def default_prompts(tok: BPETokenizer, dataset, retriever, block_size: int, prompt_cfg: PromptConfig,
                     n: int = 8) -> tuple[list[list[int]], list[str]]:
     """Real prompts for the test vectors: test questions, alternating open-book and closed-book."""
@@ -275,23 +328,55 @@ def size_report(paths: list[Path], brotli: bool = True) -> dict[str, dict]:
 # --------------------------------------------------------------------------------------- the export
 def export_model(model: GPT, tok: BPETokenizer, out: str | Path, prompts: list[list[int]],
                  texts: list[str] | None = None, prompt_cfg: PromptConfig | None = None, name: str = "brasa",
-                 formats=FORMATS, retriever=None, dataset=None, brotli: bool = True) -> dict:
+                 formats=FORMATS, retriever=None, dataset=None, brotli: bool = True,
+                 dense: dict | None = None, prior: dict | None = None) -> dict:
     """Write the model files, test vectors, tokenizer, retrieval index, parity fixtures and manifest.
 
-    Returns the manifest. `dataset` only adds real questions to the parity fixtures."""
+    Returns the manifest. `dataset` only adds real questions to the parity fixtures. dense = {"weight",
+    "pooling"} (a run trained with --retrieval-weight) adds the learned half to the retrieval index: one
+    vector per fact, computed with the weights of the default model file, the ones the browser embeds the
+    question with. prior = {"kind", "weight", "fixed"} (chosen on validation: evaluate --tune-prior) is
+    written into the index ("answers" -> "prior"): how much the retriever's ranking weighs when the model
+    chooses among the retrieved facts, the default of the browser session."""
+    from .encoder import MAX_TOKENS, embed, fact_ids, question_ids
+
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     prompt_cfg = prompt_cfg or PromptConfig()
     model = model.eval().float().cpu()
+    default_fmt = "i8" if "i8" in formats else formats[0]
 
+    loaded = {}
+    for fmt in formats:
+        write_tgpt(model, fmt, out / f"model.{fmt}.bin", tok, prompt_cfg, name)
+        _, loaded[fmt] = read_tgpt(out / f"model.{fmt}.bin")  # everything below comes from the files themselves
+    embedder = None
+    if dense and retriever is not None:
+        shipped, pad, pooling = loaded[default_fmt].eval().float().cpu(), tok.special_ids[PAD], dense["pooling"]
+        with torch.no_grad():
+            vectors = embed(shipped, [fact_ids(tok, d["text"]) for d in retriever.docs], pad, "cpu", pooling)
+        retriever = retriever.with_dense(vectors.numpy(), dense["weight"], pooling, MAX_TOKENS)
+        retriever.index["dense"]["weights"] = default_fmt
+
+        def embedder(question: str):
+            with torch.no_grad():
+                return embed(shipped, [question_ids(tok, question)], pad, "cpu", pooling)[0].numpy()
+
+    if prior and retriever is not None and (prior.get("weight") or prior.get("fixed")):
+        answers = {**retriever.index.get("answers", {}), "prior": {k: prior[k] for k in ("kind", "weight", "fixed")}}
+        retriever = Bm25Retriever({**retriever.index, "answers": answers})
     reference = test_vectors(model, prompts, texts)
     ref_logits = np.array([c["last_logits"] for c in reference["cases"] if "last_logits" in c])
+    questions = [q for q in TRICKY_QUERIES if q][:6]
+    facts = [d["text"] for d in retriever.docs[:3]] if retriever is not None else []
     parity, written = {}, []
     for fmt in formats:
         path = out / f"model.{fmt}.bin"
-        write_tgpt(model, fmt, path, tok, prompt_cfg, name)
-        _, loaded = read_tgpt(path)  # the vectors come from the file itself, not from the in-memory weights
-        vec = test_vectors(loaded, prompts, texts)
+        vec = test_vectors(loaded[fmt], prompts, texts)
+        vec["embed"] = embed_vectors(loaded[fmt], tok, questions, facts)
+        if retriever is not None:
+            vec["constrained"] = constrained_vectors(loaded[fmt], tok, prompts, retriever.index,
+                                                     prompt_cfg.answer_reserve)
         (out / f"testvec.{fmt}.json").write_text(json.dumps({"format": fmt, **vec}), encoding="utf-8")
         logits = np.array([c["last_logits"] for c in vec["cases"] if "last_logits" in c])
         same = sum(a["greedy"] == b["greedy"] for a, b in zip(vec["cases"], reference["cases"], strict=True))
@@ -307,7 +392,7 @@ def export_model(model: GPT, tok: BPETokenizer, out: str | Path, prompts: list[l
     if retriever is not None:
         retriever.save(out / "retrieval.json")
         written.append(out / "retrieval.json")
-    parity_fixtures = build_parity(tok, retriever, dataset, model.cfg.block_size, prompt_cfg)
+    parity_fixtures = build_parity(tok, retriever, dataset, model.cfg.block_size, prompt_cfg, embedder=embedder)
     (out / "parity.json").write_text(json.dumps(parity_fixtures, ensure_ascii=False), encoding="utf-8")
     written.append(out / "parity.json")
 
@@ -316,22 +401,32 @@ def export_model(model: GPT, tok: BPETokenizer, out: str | Path, prompts: list[l
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "config": model.describe(), "prompt": prompt_cfg.to_dict(),
         "special_tokens": tok.special_ids,
-        "default_model": f"model.{'i8' if 'i8' in formats else formats[0]}.bin",
+        "default_model": f"model.{default_fmt}.bin",
         "files": size_report(written, brotli), "quantisation": parity,
     }
+    if embedder is not None:  # how the facts are ranked next to BM25 (the vectors are in retrieval.json)
+        manifest["dense_retrieval"] = {k: v for k, v in retriever.index["dense"].items() if k != "vectors"}
+    if retriever is not None and retriever.index.get("answers", {}).get("prior"):
+        manifest["decoding_prior"] = retriever.index["answers"]["prior"]
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return manifest
 
 
 def evaluate_formats(model: GPT, tok: BPETokenizer, dataset, retriever, device, prompt_cfg: PromptConfig,
-                     formats=FORMATS, splits=("val", "test"), seed: int = 0) -> dict:
+                     formats=FORMATS, splits=("val", "test"), seed: int = 0, modes=None, run_info: dict | None = None,
+                     retriever_mode: str = "auto", prior: dict | None = None) -> dict:
     """Run the evaluation protocol on the de-quantised weights of every format.
 
+    A run that also ranks the facts (train --retrieval-weight) retrieves with the weights under test, so a
+    quantised model is measured with its own, quantised, ranking.
     Returns {label: {"headline", "full", "answers_identical_to_float32", "changed_examples"}}."""
-    from .evaluate import evaluate_model, headline
+    from .evaluate import MODES, evaluate_model, headline, retriever_for
 
     def run(m: GPT):
-        return evaluate_model(m.to(device), tok, dataset, retriever, device, prompt_cfg, splits=splits, seed=seed)
+        m = m.to(device)
+        used, _ = retriever_for(run_info or {}, retriever, m, tok, device, retriever_mode)
+        return evaluate_model(m, tok, dataset, used, device, prompt_cfg, splits=splits, seed=seed,
+                              modes=modes or MODES, prior=prior)
 
     _, ref_rows = run(model)
     out = {}
@@ -362,6 +457,10 @@ def main(argv=None) -> None:
     ap.add_argument("--no-eval", action="store_true", help="skip the evaluation of the quantised weights")
     ap.add_argument("--no-brotli", action="store_true", help="skip the (slow) brotli column of the size report")
     ap.add_argument("--eval-splits", default="val,test")
+    ap.add_argument("--eval-modes", default=None,
+                    help="comma separated evaluation modes for the exported weights (default: those of brasa.evaluate)")
+    ap.add_argument("--retriever", default="auto", choices=["auto", "lexical"],
+                    help="as in brasa.evaluate: auto fuses BM25 with the run's own ranking when it has one")
     ap.add_argument("--device", default="auto", help="device for the evaluation")
     ap.add_argument("--model-card", help="model card to update (default: <run>/model-card.json)")
     args = ap.parse_args(argv)
@@ -374,8 +473,18 @@ def main(argv=None) -> None:
     prompt_cfg = PromptConfig(**run["train_config"]["data"]["prompt"])
 
     prompts, texts = default_prompts(tok, dataset, retriever, model.cfg.block_size, prompt_cfg)
+    learned = run.get("retrieval") or {}
+    dense = ({"weight": learned["weight"], "pooling": learned["pooling"]}
+             if args.retriever == "auto" and learned.get("weight") is not None else None)
+    prior = (run.get("decoding") or {}).get("prior")
     manifest = export_model(model, tok, out, prompts, texts, prompt_cfg, run["preset"], formats, retriever, dataset,
-                            brotli=not args.no_brotli)
+                            brotli=not args.no_brotli, dense=dense, prior=prior)
+    if manifest.get("decoding_prior"):
+        print(f"decoding prior (the retriever's ranking in the answer): {json.dumps(manifest['decoding_prior'])}")
+    if dense:
+        d = manifest["dense_retrieval"]
+        print(f"dense retrieval: {d['dim']} values per fact from the {d['weights']} weights, {d['pooling']} pooling, "
+              f"fusion weight {d['weight']}")
     for name, f in manifest["files"].items():
         brotli = "-" if f["brotli"] is None else format(f["brotli"], ",")
         print(f"{name:18s} {f['bytes']:>11,} bytes   gzip {f['gzip']:>11,}   brotli {brotli:>11}")
@@ -388,7 +497,9 @@ def main(argv=None) -> None:
         t0 = time.time()
         device = pick_device(args.device)
         evaluated = evaluate_formats(model, tok, dataset, retriever, device, prompt_cfg, formats,
-                                     tuple(args.eval_splits.split(",")), run["train_config"]["seed"])
+                                     tuple(args.eval_splits.split(",")), run["train_config"]["seed"],
+                                     modes=tuple(args.eval_modes.split(",")) if args.eval_modes else None,
+                                     run_info=run, retriever_mode=args.retriever, prior=prior)
         sections["evaluation"] = evaluated
         for label, e in evaluated.items():
             test = {mode: per.get("test") for mode, per in e["headline"].items()}

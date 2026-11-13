@@ -89,6 +89,25 @@ export interface StreamOptions extends SamplingOptions {
   /** Source of randomness in [0, 1) for sampling. Default Math.random; see seededRandom(). */
   random?: () => number;
   inspect?: InspectOptions | null;
+  /**
+   * Restrict every step to the tokens this allows and stop at its eos: decoding constrained to the
+   * knowledge base (AnswerTrie in retrieval.js). Omitted or null: free decoding, at no extra cost.
+   */
+  constraint?: DecodingConstraint | null;
+}
+
+/** What Engine.stream needs from a constraint; S is its opaque state. */
+export interface DecodingConstraint<S = unknown> {
+  /** Token that ends an answer. */
+  readonly eos: number;
+  start(): S;
+  /** Token ids that may come next, ascending. Empty when nothing may follow. */
+  allowed(state: S): ArrayLike<number>;
+  advance(state: S, token: number): S;
+  /** Optional: when true, bias(state) is added to the logits of the allowed tokens before each choice. */
+  readonly hasPrior?: boolean;
+  /** One number per token of allowed(state), in nats (a prior over the allowed answers). */
+  bias?(state: S): ArrayLike<number>;
 }
 
 export interface GenerationStep {
@@ -97,6 +116,8 @@ export interface GenerationStep {
   token: number;
   /** True when the token is one of stopTokens. */
   stop: boolean;
+  /** Present with a constraint: how many tokens were allowed at this step (1: the token was forced). */
+  choices?: number;
   /** Present with inspect: probability the model gave to the chosen token. */
   prob?: number;
   /** Present with inspect.top. */
@@ -156,6 +177,12 @@ export class Engine {
   prefill(tokens: ArrayLike<number>): Float32Array | null;
   /** Make the cache hold exactly `tokens`, reusing the common prefix with what it already holds. */
   feed(tokens: ArrayLike<number>): Float32Array;
+  /**
+   * The model read as an encoder: a unit vector (d_model values) pooled from the final hidden states of
+   * `tokens`, 'mean' over every position (default) or the 'last' one. Used to rank the facts by cosine
+   * (Retriever.search with a vector). Overwrites the context: the next feed() starts from an empty cache.
+   */
+  embed(tokens: ArrayLike<number>, pooling?: 'mean' | 'last'): Float32Array;
 
   /** Turn the inspection buffers on or off (both off by default; off costs nothing). */
   setCapture(options?: { attention?: boolean; norms?: boolean }): void;
@@ -188,6 +215,17 @@ export function chooseToken(
   logits: ArrayLike<number>,
   options?: SamplingOptions & { random?: () => number },
   previous?: ArrayLike<number> | null,
+): number;
+/**
+ * chooseToken among the `allowed` token ids only (ascending). Greedy ties go to the lower id.
+ * bias: one number per allowed token, added to its logit first (DecodingConstraint.bias).
+ */
+export function chooseAllowed(
+  logits: ArrayLike<number>,
+  allowed: ArrayLike<number>,
+  options?: SamplingOptions & { random?: () => number },
+  previous?: ArrayLike<number> | null,
+  bias?: ArrayLike<number> | null,
 ): number;
 /** Deterministic random number generator for reproducible sampling. */
 export function seededRandom(seed: number): () => number;

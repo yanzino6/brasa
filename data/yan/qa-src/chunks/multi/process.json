@@ -1,0 +1,85 @@
+{
+ "items": [
+  {
+   "id": "multi-process-overview",
+   "facts": [
+    "process-001",
+    "process-002"
+   ],
+   "pt": [
+    "Como Yan organiza o trabalho e define o que significa dar certo?",
+    "Qual é o processo de Yan e o princípio que orienta as entregas?",
+    "Me conta o caminho de trabalho do Yan e como cada fase contribui.",
+    "Yan, como você estrutura seus projetos e decide o que conta como sucesso?",
+    "Queria conhecer as fases do trabalho de Yan e a lógica por trás delas.",
+    "Processo do Yan: qual a sequência e o que guia o avanço?",
+    "Do início ao fim, por onde passa um projeto de Yan e com qual propósito?",
+    "O que sustenta a maneira de Yan trabalhar, e como o serviço se desenrola?"
+   ],
+   "en": [
+    "How does Yan organize projects and decide what successful work looks like?",
+    "Walk me through Yan's workflow and the reasoning behind the stages.",
+    "What's Yan's working process, and what guides progress through each phase?",
+    "Yan, how do you structure your work and establish what counts as success?",
+    "I'd like an overview of Yan's approach and the purpose of each stage.",
+    "Yan's project process: what's the sequence, and what drives the work forward?",
+    "From beginning to end, what path does Yan follow, and why is the work arranged that way?",
+    "Explain the overall rhythm of Yan's work and the thinking that holds everything together."
+   ]
+  },
+  {
+   "id": "multi-process-planning",
+   "facts": [
+    "process-003",
+    "process-004"
+   ],
+   "pt": [
+    "Como Yan investiga um projeto e transforma o entendimento em um plano técnico?",
+    "O que Yan procura descobrir e desenhar antes de começar a implementação?",
+    "Me conta como Yan sai da compreensão do problema para a preparação técnica.",
+    "Yan, como você estuda uma demanda e planeja a solução?",
+    "Queria saber o que Yan levanta inicialmente e como fundamenta as escolhas técnicas.",
+    "Planejamento do Yan: o que entra na investigação e na elaboração da solução?",
+    "Antes de programar, como Yan esclarece a demanda e dá forma à proposta?",
+    "De uma ideia inicial ao esboço técnico, quais preparativos Yan realiza?"
+   ],
+   "en": [
+    "How does Yan investigate a problem and turn that understanding into a technical plan?",
+    "What does Yan learn about a project before sketching out the solution?",
+    "Tell me about Yan's initial research and the technical planning that follows.",
+    "Yan, how do you study a request and prepare the solution?",
+    "I'd like to know what Yan investigates and how Yan checks the planned approach.",
+    "Yan's early project work: what goes into understanding the need and shaping the solution?",
+    "Before implementation begins, how does Yan clarify the brief and lay out a proposed system?",
+    "From a rough idea to a technical outline, what groundwork does Yan cover?"
+   ]
+  },
+  {
+   "id": "multi-process-launch-improvement",
+   "facts": [
+    "process-007",
+    "process-008"
+   ],
+   "pt": [
+    "Como Yan prepara uma solução para produção e melhora o produto depois?",
+    "O que Yan faz no lançamento e durante os ajustes posteriores?",
+    "Me conta como Yan coloca um sistema no ar e continua aperfeiçoando.",
+    "Yan, como você cuida da estreia de uma solução e das melhorias seguintes?",
+    "Queria saber como Yan organiza a entrada em produção e o trabalho após o lançamento.",
+    "Lançamento e melhoria: como Yan conduz essas partes do trabalho?",
+    "Da disponibilização ao amadurecimento do produto, quais cuidados Yan toma?",
+    "Como funciona a passagem para operação com Yan e o acompanhamento ao longo do tempo?"
+   ],
+   "en": [
+    "How does Yan prepare a product for production and improve the product afterward?",
+    "What does Yan handle at launch and during later improvements?",
+    "Walk me through Yan's release preparation and ongoing product refinement.",
+    "Yan, how do you get a solution live and keep making the solution better?",
+    "I'd like to understand Yan's launch responsibilities and the work that follows.",
+    "Production launch and later changes: how does Yan approach both?",
+    "As a product reaches people and matures, what care does Yan provide?",
+    "Describe Yan's transition into operation and longer-term follow-through."
+   ]
+  }
+ ]
+}

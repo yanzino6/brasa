@@ -12,9 +12,11 @@ gradient clipping). The loss covers the answer span only unless --prompt-loss-we
 
 Files written to --out:
     tokenizer.json, retrieval.json   needed again by evaluate.py, export.py and sample.py
-    train_log.jsonl                  one JSON object per log line: step, loss, lr, tok_s, val losses
+    train_log.jsonl                  one JSON object per log line: step, loss, lr, tok_s, val loss and exact match
     ckpt_last.pt                     everything needed to continue (--resume)
-    ckpt_best.pt                     weights with the lowest validation loss so far
+    ckpt_best.pt                     weights with the best validation score so far (--select: exact match by
+                                     default; the validation LOSS bottoms out long before the answers stop
+                                     improving, so it picks a worse model)
     run.json                         configuration, data statistics and timing of the run
 
 Reproducibility: batch(step) is a pure function of (seed, step) and the optimiser state is checkpointed,
@@ -37,9 +39,9 @@ import numpy as np
 import torch
 
 from .config import DEFAULT_BLOCK_SIZE, DEFAULT_VOCAB_SIZE, PAD, PRESETS, DataConfig, GPTConfig, PromptConfig, preset
-from .data import BatchSampler, Example, build_examples, load_dataset, tokenizer_texts
+from .data import BatchSampler, Example, build_examples, fold_retrievers, load_dataset, tokenizer_texts
 from .model import GPT
-from .retrieval import Bm25Retriever
+from .retrieval import LAYOUTS, Bm25Retriever
 from .tokenizer import BPETokenizer
 
 DEFAULT_LR = {"brasa-4m": 1e-3, "brasa-12m": 6e-4, "brasa-27m": 4e-4}
@@ -60,6 +62,24 @@ class TrainConfig:
     beta2: float = 0.95
     grad_clip: float = 1.0
     dropout: float = 0.1
+    label_smoothing: float = 0.0
+    index: str = "flat"  # layout of the BM25 index: "flat" or "fields" (retrieval.py)
+    select: str = "em"  # what ckpt_best.pt maximises: "em" (validation exact match) or "loss" (lowest loss)
+    # a run directory of brasa.pretrain (or of this module): start from its weights and USE ITS TOKENIZER
+    init_from: str | None = None
+    tokenizer: str | None = None  # a tokenizer.json to use instead of training one on the data directory
+    # The same network as a retriever (encoder.py): weight of a contrastive (question, fact) loss added to
+    # every step (0 = off), the questions per contrastive batch, its temperature and how hidden states are pooled.
+    retrieval_weight: float = 0.0
+    retrieval_batch: int = 128
+    retrieval_temperature: float = 0.05
+    retrieval_pooling: str = "mean"
+    retrieval_mined_negatives: int = 0  # per question, facts mined for it with the BM25 index (encoder.mine_negatives)
+    # Training (and validation) contexts ranked by the fused retriever of ANOTHER run: a brasa.train run with
+    # --retrieval-weight or a brasa.encoder run. A model that will be asked with facts ranked by BM25 + its own
+    # hidden states should not be trained on BM25 contexts only: the facts that come with an out-of-scope
+    # question look different (they are about the right subject), and it learns to decline on the wrong cue.
+    contexts_from: str | None = None
     vocab_size: int = DEFAULT_VOCAB_SIZE
     block_size: int = DEFAULT_BLOCK_SIZE
     seed: int = 0
@@ -99,13 +119,17 @@ def make_optimizer(model: GPT, cfg: TrainConfig, lr: float) -> torch.optim.AdamW
 
 
 @torch.no_grad()
-def answer_loss(model: GPT, examples: list[Example], pad_id: int, device: torch.device,
-                max_tokens: int = 32768) -> float:
-    """Mean cross-entropy per answer token (teacher forced), in float32, over a list of examples."""
+def answer_metrics(model: GPT, examples: list[Example], pad_id: int, device: torch.device,
+                   max_tokens: int = 32768) -> tuple[float, float]:
+    """(mean cross-entropy per answer token, exact match) over a list of examples, teacher forced.
+
+    Exact match is the share of examples whose every answer token, <|eos|> included, is the model's most
+    likely token given the gold prefix. That is exactly the share greedy decoding gets right (it follows
+    the gold answer for as long as each argmax is the gold token), at the price of one forward pass."""
     was_training = model.training
     model.eval()
     order = sorted(range(len(examples)), key=lambda i: len(examples[i].ids))
-    total, count, i = 0.0, 0, 0
+    total, count, exact, i = 0.0, 0, 0, 0
     while i < len(order):
         width = len(examples[order[i]].ids)
         rows = [order[i]]
@@ -122,12 +146,56 @@ def answer_loss(model: GPT, examples: list[Example], pad_id: int, device: torch.
             ids[r, : len(ex.ids)] = torch.tensor(ex.ids)
             targets[r, ex.answer_start - 1 : len(ex.ids) - 1] = torch.tensor(ex.ids[ex.answer_start :])
         n = int((targets != -100).sum())
-        _, loss, _ = model(ids[:, :-1].to(device), targets.to(device))
+        targets = targets.to(device)
+        logits, loss, _ = model(ids[:, :-1].to(device), targets)
         total += float(loss) * n
         count += n
+        exact += int(((logits.argmax(-1) == targets) | (targets == -100)).all(dim=1).sum())
         i += len(rows)
     model.train(was_training)
-    return total / max(1, count)
+    return total / max(1, count), exact / max(1, len(examples))
+
+
+def answer_loss(model: GPT, examples: list[Example], pad_id: int, device: torch.device,
+                max_tokens: int = 32768) -> float:
+    """Mean cross-entropy per answer token (teacher forced), in float32, over a list of examples."""
+    return answer_metrics(model, examples, pad_id, device, max_tokens)[0]
+
+
+def make_scaler(device: torch.device, amp: str) -> torch.amp.GradScaler:
+    """Loss scaling for float16 autocast (a pass-through for float32 and bfloat16).
+
+    Under float16 the backward pass carries d loss / d logits = (softmax - one_hot) / n_tokens in half precision,
+    whose smallest positive value is 6e-8. With thousands of tokens in a batch most of those terms are smaller
+    and are flushed to zero: the model then trains on a fraction of its gradient, or not at all (plain text,
+    where every token counts: the loss stays at ln(vocab) and ends in NaN). The scaler multiplies the loss by a
+    large power of two before the backward pass and divides the float32 gradients back before the update."""
+    return torch.amp.GradScaler(device.type, enabled=amp == "fp16")
+
+
+def optimizer_step(model: GPT, opt: torch.optim.Optimizer, scaler: torch.amp.GradScaler, loss: torch.Tensor,
+                   grad_clip: float) -> None:
+    """One update: scaled backward pass, gradients unscaled and clipped, step (skipped if they overflowed)."""
+    opt.zero_grad(set_to_none=True)
+    scaler.scale(loss).backward()
+    scaler.unscale_(opt)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+    scaler.step(opt)
+    scaler.update()
+
+
+def require_finite(value: float, what: str, step: int) -> None:
+    """Stop a run whose loss is NaN or infinite instead of training on for hours."""
+    if not math.isfinite(value):
+        raise FloatingPointError(f"{what} is {value} at step {step}: the run has diverged; stopping")
+
+
+def finite_state(state: dict, where: str | Path) -> dict:
+    """The state dict, after checking that every weight is finite (a diverged run must not seed another)."""
+    for name, tensor in state.items():
+        if torch.is_floating_point(tensor) and not bool(torch.isfinite(tensor).all()):
+            raise ValueError(f"{where}: weights are not finite ({name}); the run that wrote it diverged")
+    return state
 
 
 def save_checkpoint(path: Path, **payload) -> None:
@@ -143,6 +211,35 @@ def load_weights(path: str | Path, device: str | torch.device = "cpu") -> tuple[
     model = GPT(GPTConfig(**{**cfg, "dropout": 0.0}))
     model.load_state_dict(ckpt["model"])
     return model.to(device).eval(), ckpt
+
+
+def init_info(run_dir: str | Path) -> dict:
+    """What a run started from (--init-from): the checkpoint and, for a brasa.pretrain run, its provenance."""
+    run_dir = Path(run_dir)
+    out: dict = {"dir": str(run_dir), "checkpoint": str(run_dir / "ckpt_last.pt")}
+    run_json = run_dir / "run.json"
+    if run_json.exists():
+        run = json.loads(run_json.read_text(encoding="utf-8"))
+        keys = ("objective", "steps", "tokens_seen", "epochs_equivalent", "train_seconds", "final_val", "corpus")
+        out.update({k: run[k] for k in keys if k in run})
+    return out
+
+
+def context_retriever(source: str | Path, lexical: Bm25Retriever, device) -> tuple[object, dict]:
+    """(retriever, description) for --contexts-from: the learned ranking of another run, fused with `lexical`
+    (the BM25 index of THIS run, so the documents are the ones this run is trained on)."""
+    from .evaluate import load_run, retriever_for
+
+    source = Path(source)
+    if (source / "encoder_best.pt").exists():  # a stand-alone dual encoder (brasa.encoder)
+        retriever, info = retriever_for({}, lexical, None, None, device, encoder=source)
+        return retriever, {**info, "run": str(source)}
+    model, tok, _, run = load_run(source, "last", device)
+    retriever, info = retriever_for(run, lexical, model, tok, device)
+    if info["kind"] == "bm25":
+        raise ValueError(f"{source} has no learned ranking: give a run trained with --retrieval-weight, "
+                         "or a brasa.encoder run")
+    return retriever, {**info, "run": str(source)}
 
 
 def train(cfg: TrainConfig) -> dict:
@@ -165,30 +262,61 @@ def train(cfg: TrainConfig) -> dict:
     resuming = cfg.resume and last.exists()
     if resuming and (out / "tokenizer.json").exists():
         tok = BPETokenizer.load(out / "tokenizer.json")
+    elif cfg.init_from or cfg.tokenizer:  # pretrained weights only make sense with their own vocabulary
+        tok = BPETokenizer.load(cfg.tokenizer or Path(cfg.init_from) / "tokenizer.json")
+        tok.save(out / "tokenizer.json")
     else:
         tok = BPETokenizer.train(tokenizer_texts(dataset), cfg.vocab_size)
         tok.save(out / "tokenizer.json")
-    retriever = Bm25Retriever.from_dataset(dataset)
+    retriever = Bm25Retriever.from_dataset(dataset, layout=cfg.index)
     retriever.save(out / "retrieval.json")
-    examples, data_stats = build_examples(dataset, "train", tok, retriever, cfg.data, cfg.block_size, cfg.seed)
+    folds = None
+    if cfg.data.context_folds > 1:  # training contexts from indices that have not seen the question
+        folds = fold_retrievers(dataset, cfg.data.context_folds,
+                                lambda skip: Bm25Retriever.from_dataset(dataset, skip=skip, layout=cfg.index))
+    contexts, contexts_info = retriever, None
+    if cfg.contexts_from:
+        if folds:
+            raise ValueError("--contexts-from and --context-folds are two ways of building the contexts: choose one")
+        contexts, contexts_info = context_retriever(cfg.contexts_from, retriever, device)
+    examples, data_stats = build_examples(dataset, "train", tok, contexts, cfg.data, cfg.block_size, cfg.seed, folds)
     val_cfg = DataConfig(variants=2, prompt=cfg.data.prompt)  # clean closed-book + clean open-book
-    val_examples, _ = build_examples(dataset, "val", tok, retriever, val_cfg, cfg.block_size, cfg.seed)
+    val_examples, _ = build_examples(dataset, "val", tok, contexts, val_cfg, cfg.block_size, cfg.seed)
+    del contexts  # the other run's network is not needed after this point
     val_open = [e for e in val_examples if e.open_book]
     val_closed = [e for e in val_examples if not e.open_book]
     pad_id = tok.special_ids[PAD]
     sampler = BatchSampler(examples, cfg.block_size, cfg.batch_tokens, pad_id, cfg.seed, cfg.data.prompt_loss_weight)
+    dense = None
+    if cfg.retrieval_weight > 0:  # imported here: encoder.py builds on this module
+        from . import encoder as enc
+        dense = enc.EncoderConfig(batch=cfg.retrieval_batch, seed=cfg.seed, temperature=cfg.retrieval_temperature,
+                                  pooling=cfg.retrieval_pooling, mined_negatives=cfg.retrieval_mined_negatives)
+        if dense.pooling not in enc.POOLINGS:
+            raise ValueError(f"unknown --retrieval-pooling {dense.pooling!r}; choose from {enc.POOLINGS}")
+        pairs, siblings = enc.training_pairs(dataset), enc.same_topic(dataset)
+        mined = enc.mine_negatives(dataset, retriever, dense.mined_top) if dense.mined_negatives > 0 else None
     prep_seconds = time.time() - t0
 
     # ---- model, optimiser
     model = GPT(preset(cfg.preset, vocab_size=tok.vocab_size, block_size=cfg.block_size, dropout=cfg.dropout))
     model.to(device)
     opt = make_optimizer(model, cfg, base_lr)
+    if cfg.select not in ("em", "loss"):
+        raise ValueError(f"unknown --select {cfg.select!r}; choose em or loss")
     start_step, best_val, elapsed, tokens_seen = 0, float("inf"), 0.0, 0
+    best_score = (-1.0, float("-inf"))  # (validation exact match, -loss); "loss" only compares the second
+    init = None
+    if cfg.init_from and not resuming:
+        init = init_info(cfg.init_from)
+        state = torch.load(init["checkpoint"], map_location="cpu", weights_only=False)["model"]
+        model.load_state_dict(finite_state(state, init["checkpoint"]))
     if resuming:
         ckpt = torch.load(last, map_location="cpu", weights_only=False)
         model.load_state_dict(ckpt["model"])
         opt.load_state_dict(ckpt["optimizer"])
         start_step, best_val = ckpt["step"], ckpt["best_val"]
+        best_score = tuple(ckpt.get("best_score", best_score))
         elapsed, tokens_seen = ckpt["elapsed"], ckpt["tokens_seen"]
         torch.manual_seed(cfg.seed + start_step)
 
@@ -196,10 +324,15 @@ def train(cfg: TrainConfig) -> dict:
     amp = cfg.amp if cfg.amp != "auto" else ("fp16" if device.type in ("mps", "cuda") else "off")
     amp_dtype = {"fp16": torch.float16, "bf16": torch.bfloat16}.get(amp)
     forward = torch.compile(model) if use_compile else model  # evaluation always uses the plain module
+    scaler = make_scaler(device, amp)
+    if resuming and ckpt.get("scaler"):
+        scaler.load_state_dict(ckpt["scaler"])
 
     info = {
         "event": "start", "preset": cfg.preset, "model": model.describe(), "device": str(device),
         "compile": use_compile, "amp": amp, "lr": base_lr, "resumed_from_step": start_step if resuming else None,
+        "init_from": init if init is not None else (cfg.init_from and init_info(cfg.init_from)),
+        "contexts_from": contexts_info,
         "tokenizer": {"vocab_size": tok.vocab_size, "merges": len(tok.merges), "requested": cfg.vocab_size},
         "data": {"dir": cfg.data_dir, **dataset.stats()}, "examples": data_stats,
         "buckets": [{"width": b["width"], "examples": len(b["ids"]), "rows": b["rows"]} for b in sampler.buckets],
@@ -216,8 +349,9 @@ def train(cfg: TrainConfig) -> dict:
     log(info)
 
     def checkpoint(step: int) -> None:
-        save_checkpoint(last, model=model.state_dict(), optimizer=opt.state_dict(), step=step, best_val=best_val,
-                        elapsed=elapsed, tokens_seen=tokens_seen, config=model.describe(),
+        save_checkpoint(last, model=model.state_dict(), optimizer=opt.state_dict(), scaler=scaler.state_dict(),
+                        step=step, best_val=best_val,
+                        best_score=best_score, elapsed=elapsed, tokens_seen=tokens_seen, config=model.describe(),
                         train_config=asdict(cfg))
 
     def sync() -> None:
@@ -228,7 +362,7 @@ def train(cfg: TrainConfig) -> dict:
 
     # ---- loop
     model.train()
-    window_loss, window_tokens, window_steps = 0.0, 0, 0
+    window_loss, window_tokens, window_steps, window_retrieval = 0.0, 0, 0, 0.0
     t_window = time.time()
     val_history: list[dict] = []
     step = start_step
@@ -241,15 +375,27 @@ def train(cfg: TrainConfig) -> dict:
             x, y, w = sampler.batch(step)
             x, y = torch.from_numpy(x).to(device), torch.from_numpy(y).to(device)
             w = None if w is None else torch.from_numpy(w).to(device)
+            contrast = enc.make_batch(pairs, dataset, siblings, tok, dense, step, mined) if dense else None
+
+            def losses(x=x, y=y, w=w, contrast=contrast):
+                """(what is optimised, the language-model loss, the contrastive loss or None)."""
+                _, lm, _ = forward(x, y, loss_weights=w, label_smoothing=cfg.label_smoothing)
+                if contrast is None:
+                    return lm, lm, None
+                questions, documents, positive, false_negative = contrast
+                r = enc.contrastive_loss(enc.embed(model, questions, pad_id, device, dense.pooling),
+                                         enc.embed(model, documents, pad_id, device, dense.pooling),
+                                         positive.to(device), false_negative.to(device), dense.temperature)
+                return lm + cfg.retrieval_weight * r, lm, r
+
             if amp_dtype is not None:
                 with torch.autocast(device_type=device.type, dtype=amp_dtype):
-                    _, loss, _ = forward(x, y, loss_weights=w)
+                    total, loss, r_loss = losses()
             else:
-                _, loss, _ = forward(x, y, loss_weights=w)
-            opt.zero_grad(set_to_none=True)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
-            opt.step()
+                total, loss, r_loss = losses()
+            optimizer_step(model, opt, scaler, total, cfg.grad_clip)
+            if r_loss is not None:
+                window_retrieval += float(r_loss.detach())
             window_loss += float(loss.detach())
             window_tokens += x.numel()
             window_steps += 1
@@ -260,23 +406,38 @@ def train(cfg: TrainConfig) -> dict:
                 sync()
                 dt = time.time() - t_window
                 elapsed += dt
-                log({"step": done, "loss": round(window_loss / window_steps, 4), "lr": round(lr, 7),
-                     "tok_s": round(window_tokens / dt), "elapsed_s": round(elapsed, 1)})
-                window_loss, window_tokens, window_steps = 0.0, 0, 0
+                require_finite(window_loss, "the training loss", done)
+                rec = {"step": done, "loss": round(window_loss / window_steps, 4), "lr": round(lr, 7),
+                       "tok_s": round(window_tokens / dt), "elapsed_s": round(elapsed, 1)}
+                if dense:
+                    require_finite(window_retrieval, "the contrastive loss", done)
+                    rec["retrieval_loss"] = round(window_retrieval / window_steps, 4)
+                log(rec)
+                window_loss, window_tokens, window_steps, window_retrieval = 0.0, 0, 0, 0.0
                 t_window = time.time()
             if done % cfg.eval_every == 0 or done == end:
-                v_open = answer_loss(model, val_open, pad_id, device) if val_open else None
-                v_closed = answer_loss(model, val_closed, pad_id, device) if val_closed else None
+                v_open, em_open = answer_metrics(model, val_open, pad_id, device) if val_open else (None, None)
+                v_closed, em_closed = answer_metrics(model, val_closed, pad_id, device) if val_closed else (None, None)
                 parts = [v for v in (v_open, v_closed) if v is not None]
+                ems = [v for v in (em_open, em_closed) if v is not None]
                 val = sum(parts) / len(parts) if parts else float("nan")
+                val_em = sum(ems) / len(ems) if ems else 0.0
                 rec = {"step": done, "val_loss": round(val, 4), "val_loss_open": v_open and round(v_open, 4),
-                       "val_loss_closed": v_closed and round(v_closed, 4)}
+                       "val_loss_closed": v_closed and round(v_closed, 4), "val_em": round(val_em, 4),
+                       "val_em_open": em_open and round(em_open, 4), "val_em_closed": em_closed and round(em_closed, 4)}
+                if dense:  # the network read as a retriever, alone: gold facts among its first hits
+                    found = enc.recall(dataset, enc.DenseRetriever(model, tok, retriever.docs, dense.pooling,
+                                                                   device=device), "val", ks=(1, 4))
+                    model.train()
+                    rec.update({"val_dense_recall@1": found["recall@1"], "val_dense_recall@4": found["recall@4"]})
                 val_history.append(rec)
                 log(rec)
-                if val < best_val:
-                    best_val = val
-                    save_checkpoint(out / "ckpt_best.pt", model=model.state_dict(), step=done, best_val=best_val,
-                                    config=model.describe(), train_config=asdict(cfg))
+                best_val = min(best_val, val)
+                score = (val_em if cfg.select == "em" else 0.0, -val)
+                if parts and score > best_score:
+                    best_score = score
+                    save_checkpoint(out / "ckpt_best.pt", model=model.state_dict(), step=done, best_val=val,
+                                    val_em=val_em, config=model.describe(), train_config=asdict(cfg))
                 t_window = time.time()
             if done % cfg.ckpt_every == 0 or done == end:
                 checkpoint(done)
@@ -295,8 +456,12 @@ def train(cfg: TrainConfig) -> dict:
         "tokens_seen": tokens_seen, "tokens_per_second": round(tokens_seen / max(elapsed, 1e-9)),
         "epochs_equivalent": round(tokens_seen / max(1, data_stats["tokens"]), 1),
         "best_val_loss": None if math.isinf(best_val) else round(best_val, 4),
+        "best_val_em": None if best_score[0] < 0 else round(best_score[0], 4), "select": cfg.select,
         "final_val": val_history[-1] if val_history else None,
     }
+    if dense:  # how much the learned ranking weighs next to BM25: chosen on the validation questions
+        summary["retrieval"] = {"pooling": dense.pooling, "temperature": dense.temperature,
+                                **enc.fusion_report(model, tok, dataset, retriever, dense.pooling, device)}
     (out / "run.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
     return summary
 
@@ -315,6 +480,27 @@ def parse_args(argv=None) -> TrainConfig:
     ap.add_argument("--weight-decay", type=float, default=d.weight_decay)
     ap.add_argument("--grad-clip", type=float, default=d.grad_clip)
     ap.add_argument("--dropout", type=float, default=d.dropout)
+    ap.add_argument("--label-smoothing", type=float, default=d.label_smoothing)
+    ap.add_argument("--index", default=d.index, choices=LAYOUTS,
+                    help="BM25 index layout: one document per fact, or fact / topic / questions as three fields")
+    ap.add_argument("--select", default=d.select, choices=["em", "loss"],
+                    help="ckpt_best.pt keeps the highest validation exact match, or the lowest validation loss")
+    ap.add_argument("--init-from", default=None,
+                    help="run directory of brasa.pretrain: start from its weights and use its tokenizer")
+    ap.add_argument("--tokenizer", default=None,
+                    help="use this tokenizer.json instead of training one (default with --init-from: its tokenizer)")
+    ap.add_argument("--retrieval-weight", type=float, default=d.retrieval_weight,
+                    help="weight of a contrastive (question, fact) loss on the pooled hidden states, added to every "
+                         "step: the same network then also ranks the facts (0 = language model only)")
+    ap.add_argument("--contexts-from", default=None,
+                    help="rank the training contexts with the learned retriever of this run (brasa.train with "
+                         "--retrieval-weight, or brasa.encoder) fused with BM25, instead of BM25 alone")
+    ap.add_argument("--retrieval-batch", type=int, default=d.retrieval_batch,
+                    help="questions per contrastive batch (each with its gold fact and a same-topic negative)")
+    ap.add_argument("--retrieval-temperature", type=float, default=d.retrieval_temperature)
+    ap.add_argument("--retrieval-mined-negatives", type=int, default=d.retrieval_mined_negatives,
+                    help="per contrastive question, add this many of the BM25 index's best wrong facts for it")
+    ap.add_argument("--retrieval-pooling", default=d.retrieval_pooling, choices=["mean", "last"])
     ap.add_argument("--vocab-size", type=int, default=d.vocab_size)
     ap.add_argument("--block-size", type=int, default=d.block_size, help="context length")
     ap.add_argument("--seed", type=int, default=d.seed)
@@ -330,14 +516,35 @@ def parse_args(argv=None) -> TrainConfig:
     ap.add_argument("--variants", type=int, default=dd.variants, help="training examples per QA record")
     ap.add_argument("--open-book-prob", type=float, default=dd.open_book_prob)
     ap.add_argument("--noise-prob", type=float, default=dd.noise_prob)
+    ap.add_argument("--word-dropout-prob", type=float, default=dd.word_dropout_prob,
+                    help="share of the training variants whose question loses some of its words")
+    ap.add_argument("--word-dropout-rate", type=float, default=dd.word_dropout_rate,
+                    help="probability of dropping each word of such a question")
     ap.add_argument("--prompt-loss-weight", type=float, default=dd.prompt_loss_weight,
                     help="loss weight of the non-answer tokens: 0 = answer span only, 1 = every token")
     ap.add_argument("--max-facts", type=int, default=pd.max_facts, help="facts shown in open-book mode")
+    ap.add_argument("--oracle-prob", type=float, default=dd.oracle_prob,
+                    help="open-book variants in which the gold facts are forced into the context")
+    ap.add_argument("--drop-gold-prob", type=float, default=dd.drop_gold_prob,
+                    help="open-book variants in which the gold facts are removed from the context")
+    ap.add_argument("--shuffle-prob", type=float, default=dd.shuffle_prob,
+                    help="open-book variants whose facts are shuffled (0 keeps the retriever's ranking)")
+    ap.add_argument("--random-distractor-prob", type=float, default=dd.random_distractor_prob,
+                    help="open-book variants in which one retrieved fact is swapped for a random one")
     ap.add_argument("--counterfactual-prob", type=float, default=dd.counterfactual_prob,
                     help="open-book examples whose gold fact gets other numbers and names, in context and answer")
+    ap.add_argument("--context-folds", type=int, default=dd.context_folds,
+                    help="cross-fitted training contexts: retrieve for a training question with an index built "
+                         "without the questions of its fold (0 = one index that holds every training question)")
+    ap.add_argument("--importance-power", type=float, default=dd.importance_power,
+                    help="sample an example in proportion to (importance of its fact / 5) ** this; 0 = uniform")
     a = ap.parse_args(argv)
     data = DataConfig(variants=a.variants, open_book_prob=a.open_book_prob, noise_prob=a.noise_prob,
-                      counterfactual_prob=a.counterfactual_prob,
+                      word_dropout_prob=a.word_dropout_prob, word_dropout_rate=a.word_dropout_rate,
+                      oracle_prob=a.oracle_prob, drop_gold_prob=a.drop_gold_prob, shuffle_prob=a.shuffle_prob,
+                      random_distractor_prob=a.random_distractor_prob, counterfactual_prob=a.counterfactual_prob,
+                      context_folds=a.context_folds,
+                      importance_power=a.importance_power,
                       prompt_loss_weight=a.prompt_loss_weight, prompt=PromptConfig(max_facts=a.max_facts))
     fields = {k: v for k, v in vars(a).items() if k in TrainConfig.__dataclass_fields__}
     return TrainConfig(**fields, data=data)

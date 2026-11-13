@@ -1,0 +1,52 @@
+{
+ "pt": {
+  "val": [
+   "Onde tem uma pizzaria boa por aqui?",
+   "Me indica um café em grãos suave",
+   "Como escolher uma melancia madura?",
+   "Gostaria de sugestões de presentes baratos para uma amiga.",
+   "Qual aplicativo cobra menos pela entrega de comida?"
+  ],
+  "test": [
+   "Sushi barato vale a pena?",
+   "Preciso comprar uma geladeira para uma cozinha pequena.",
+   "O que fazer para o jantar com lentilha?",
+   "Tem algum restaurante com espaço para crianças?",
+   "Meu pedido chegou frio, como peço reembolso?",
+   "Vale esperar uma promoção para comprar tênis?",
+   "Sugira um vinho para acompanhar risoto de cogumelos.",
+   "Estou procurando uma padaria que abra bem cedo.",
+   "Air fryer compensa para quem mora sozinho?",
+   "Quero um almoço sem carne e rico em proteína",
+   "Quanto de arroz faço para seis pessoas?",
+   "Dá para economizar no mercado comprando a granel?",
+   "Esse site de roupas parece confiável, como verifico?",
+   "Pode recomendar um serviço de marmitas congeladas?"
+  ]
+ },
+ "en": {
+  "val": [
+   "Any good taco spots nearby?",
+   "Help me pick a blender for smoothies.",
+   "What can I cook with leftover cabbage?",
+   "Is paying for grocery delivery worth it?",
+   "Please suggest a birthday gift for someone who loves gardening."
+  ],
+  "test": [
+   "Cheap brunch ideas?",
+   "I'm looking for a quiet restaurant for an anniversary dinner.",
+   "How do I tell if an avocado is ripe?",
+   "Which headphones should I buy for commuting?",
+   "My takeout order is missing a side dish. What should I do?",
+   "Recommend a snack without peanuts",
+   "Does this jacket seem overpriced?",
+   "Where can I get decent dumplings after midnight?",
+   "Can you freeze cooked pasta?",
+   "I'd like a weekly meal plan on a tight budget.",
+   "Should I tip the courier if my food arrives late?",
+   "Need comfortable shoes for standing all day",
+   "What's the difference between a food processor and a mixer?",
+   "Find me a bakery that makes dairy-free cakes."
+  ]
+ }
+}

@@ -1,0 +1,52 @@
+{
+ "pt": {
+  "val": [
+   "Por que meu carro treme quando freio?",
+   "Como consertar uma torneira pingando?",
+   "Gato pode comer manga?",
+   "Qual é a melhor época para plantar girassóis?",
+   "O que significa sonhar com uma escada?"
+  ],
+  "test": [
+   "Meu cachorro late quando fica sozinho, o que faço?",
+   "Preciso trocar o óleo mesmo rodando pouco?",
+   "Dá para cultivar morango em apartamento?",
+   "Sou de Libra, qual signo combina comigo?",
+   "A tomada está frouxa, como arrumo?",
+   "Sonhei que perdia o ônibus, tem algum significado?",
+   "Qual substrato devo usar para orquídeas?",
+   "Poderia explicar como remover mofo do teto?",
+   "Pneu remold vale a pena",
+   "Meu coelho parou de comer desde ontem",
+   "Como descubro meu ascendente?",
+   "Tem um jeito fácil de desentupir o ralo?",
+   "Peixes de aquário precisam de luz à noite?",
+   "Por que sempre sonho que estou caindo?"
+  ]
+ },
+ "en": {
+  "val": [
+   "What does a flashing engine light mean?",
+   "Any tips for patching a hole in drywall?",
+   "Can rabbits eat spinach?",
+   "When should I prune my rose bushes?",
+   "Does dreaming about the ocean mean anything?"
+  ],
+  "test": [
+   "My puppy keeps chewing shoes, help",
+   "Is a used hybrid worth buying?",
+   "Please explain how to replace a broken door hinge.",
+   "Which herbs grow well on a sunny windowsill?",
+   "Are Taurus and Pisces compatible?",
+   "I dreamed my teeth fell out. Should I read anything into that?",
+   "How often do guinea pigs need fresh bedding?",
+   "Why does the steering wheel shake at highway speeds?",
+   "Can I paint over old wallpaper?",
+   "Something is eating my tomato leaves",
+   "Could you tell me what my rising sign represents?",
+   "Best way to clean a fish tank?",
+   "The garage door squeaks whenever it opens. What should I check?",
+   "Why do I keep dreaming about my childhood home?"
+  ]
+ }
+}

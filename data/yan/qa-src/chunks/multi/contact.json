@@ -1,0 +1,58 @@
+{
+ "items": [
+  {
+   "id": "multi-contact-overview",
+   "facts": [
+    "contact-001",
+    "contact-003"
+   ],
+   "pt": [
+    "Quais são os canais de contato do Yan e o link do LinkedIn?",
+    "Como posso falar com Yan e acessar o perfil profissional?",
+    "Me passa as formas de contatar Yan e a página no LinkedIn.",
+    "Yan, por onde posso te contatar e qual é seu perfil profissional?",
+    "Queria saber como entrar em contato com Yan e encontrar o LinkedIn.",
+    "Contato do Yan e endereço do perfil profissional?",
+    "Para mandar uma mensagem ao Yan, quais caminhos existem e onde fica a apresentação profissional online?",
+    "Onde procurar Yan para uma conversa e consultar a trajetória profissional na rede?"
+   ],
+   "en": [
+    "How can I contact Yan, and what's the link to Yan's LinkedIn profile?",
+    "List Yan's contact channels and professional profile URL.",
+    "I'd like to reach Yan and visit Yan's LinkedIn page. Where should I go?",
+    "Yan, how can someone contact you and find your professional profile?",
+    "What are the ways to get in touch with Yan, including the LinkedIn address?",
+    "Show me Yan's communication options and the link to Yan's professional page.",
+    "Where should a recruiter look to message Yan and browse Yan's career presence online?",
+    "Point me toward Yan for a conversation and toward the social account covering Yan's professional background."
+   ]
+  },
+  {
+   "id": "multi-github-visibility",
+   "facts": [
+    "contact-004",
+    "contact-005"
+   ],
+   "pt": [
+    "Qual é o GitHub do Yan e por que nem todo o trabalho aparece lá?",
+    "Me mostra o perfil do Yan no GitHub e explica os limites do conteúdo público.",
+    "Onde encontro Yan no GitHub e o que impede ver todos os repositórios?",
+    "Yan, qual é seu perfil no GitHub e por que só parte do trabalho está visível?",
+    "Queria o endereço do GitHub do Yan e entender por que alguns projetos não aparecem.",
+    "GitHub do Yan: qual o usuário e por que a exposição do trabalho é parcial?",
+    "Como localizar a conta de código do Yan e entender as lacunas na vitrine aberta?",
+    "Que página reúne os repositórios do Yan, e por qual motivo visitantes não conseguem consultar a coleção inteira?"
+   ],
+   "en": [
+    "What's Yan's GitHub handle, and why isn't all of Yan's work visible there?",
+    "Where is Yan's GitHub profile, and what limits how much work I can see?",
+    "Share Yan's GitHub address and explain why some repositories aren't public.",
+    "Yan, what's your GitHub account, and why does the public view show only some of your work?",
+    "I'd like to find Yan on GitHub and understand why the profile doesn't cover everything.",
+    "Yan's GitHub username and the reason for the incomplete public portfolio?",
+    "Which code hosting page belongs to Yan, and what explains the gaps in the open collection?",
+    "Point me to Yan's repository collection and clarify why visitors cannot browse the entire body of work."
+   ]
+  }
+ ]
+}

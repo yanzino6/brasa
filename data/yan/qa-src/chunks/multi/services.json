@@ -1,0 +1,58 @@
+{
+ "items": [
+  {
+   "id": "multi-services-overview",
+   "facts": [
+    "services-001",
+    "services-002"
+   ],
+   "pt": [
+    "Quais serviços Yan oferece e como acompanha o cliente?",
+    "Me conta as áreas de atuação de Yan e como funciona o trabalho com o cliente.",
+    "Yan trabalha com o quê e participa até qual etapa da entrega?",
+    "Queria conhecer as especialidades de Yan e entender o acompanhamento durante um projeto.",
+    "Yan, quais são suas frentes de trabalho e como você conduz uma contratação?",
+    "Serviços de Yan: quais áreas cobre e até onde vai o suporte ao projeto?",
+    "Ao contratar Yan, que tipos de solução posso pedir e qual será a participação durante o percurso?",
+    "Do que Yan cuida para empresas e quando termina o envolvimento na entrega?"
+   ],
+   "en": [
+    "What services does Yan offer, and how does Yan work with clients?",
+    "Walk me through Yan's specialties and involvement throughout a project.",
+    "What kinds of work can I hire Yan for, and how far does that engagement extend?",
+    "I'd like an overview of Yan's service areas and approach to client collaboration.",
+    "Yan, what do you specialize in, and which stages of delivery do you handle?",
+    "Explain Yan's scope of services and how the work connects to a client's business.",
+    "Where can Yan help a company, and when does that responsibility end?",
+    "Considering Yan for a contract: which needs fit, and what does the journey together look like?"
+   ]
+  },
+  {
+   "id": "multi-agents-handoff",
+   "facts": [
+    "services-004",
+    "services-005"
+   ],
+   "pt": [
+    "Que tarefas os agentes de Yan atendem e o que acontece quando precisam de ajuda?",
+    "Como Yan constrói agentes de IA e lida com atendimentos que exigem intervenção?",
+    "Me conta os usos dos agentes de Yan e a saída quando não conseguem resolver um atendimento.",
+    "Queria entender a parte técnica dos agentes de Yan e como funcionam os encaminhamentos no atendimento.",
+    "Yan, para que servem seus agentes e como você prevê situações fora da capacidade deles?",
+    "Agentes de Yan: aplicações, tecnologias e alternativa quando a automação não basta?",
+    "Onde Yan aplica assistentes inteligentes e quem assume se uma conversa ultrapassa os limites da automação?",
+    "Explique o trabalho de Yan com IA para empresas, incluindo o destino das solicitações que dependem de intervenção."
+   ],
+   "en": [
+    "What does Yan build AI agents for, and what happens when an agent needs help?",
+    "How are Yan's agents put together, and how do they handle cases requiring intervention?",
+    "Tell me about Yan's agent use cases and the fallback when automated service isn't enough.",
+    "I'd like to understand Yan's agent tooling and how unresolved customer conversations get passed along.",
+    "Yan, what can your agents do, and how do you plan for requests beyond their capabilities?",
+    "Yan's AI agents: business applications, technical setup, and escalation options?",
+    "Where does Yan deploy intelligent assistants, and who takes over if a conversation needs extra support?",
+    "Describe Yan's approach to business automation, including the route for inquiries that require someone to step in."
+   ]
+  }
+ ]
+}

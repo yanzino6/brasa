@@ -1,0 +1,52 @@
+{
+ "pt": {
+  "val": [
+   "Qual é o plural de cidadão?",
+   "Me ajuda a praticar francês?",
+   "O que significa efêmero?",
+   "Explique quando usar ponto e vírgula.",
+   "Existe diferença entre sessão e seção?"
+  ],
+  "test": [
+   "Como se escreve exceção?",
+   "Preciso melhorar minha pronúncia em espanhol.",
+   "Crase antes de cidade tem regra?",
+   "Me passa um exercício de concordância verbal.",
+   "Por que hífen leva acento?",
+   "Traduza bom dia para alemão.",
+   "Queria entender o uso do pretérito imperfeito.",
+   "Mal ou mau nessa frase: ele dormiu mal?",
+   "Dá para aprender italiano sozinho?",
+   "Defina ambiguidade com um exemplo simples.",
+   "Onde entra a vírgula em uma enumeração?",
+   "Sinônimo de bonito",
+   "Você poderia corrigir a gramática deste parágrafo?",
+   "A gente vai ou a gente vamos?"
+  ]
+ },
+ "en": {
+  "val": [
+   "What does reluctant mean?",
+   "Help me practice Japanese.",
+   "Is advice countable?",
+   "Explain the difference between borrow and lend.",
+   "When should I use a semicolon?"
+  ],
+  "test": [
+   "How do you spell accommodation?",
+   "Give me three examples of irregular verbs.",
+   "Can we have a beginner conversation in Italian?",
+   "Does this sentence need an apostrophe?",
+   "I keep mixing up their and there.",
+   "What's the opposite of generous?",
+   "Please explain the past perfect tense.",
+   "Fewer or less?",
+   "Teach me a polite greeting in Korean.",
+   "Why is the k silent in knife?",
+   "Could you proofread my paragraph for grammar mistakes?",
+   "Any tips for remembering German noun genders?",
+   "Is children already plural",
+   "Suggest a more formal way to say thanks."
+  ]
+ }
+}

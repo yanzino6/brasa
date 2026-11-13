@@ -5,7 +5,7 @@
   "magic": "TGPT",
   "version": 1
  },
- "created_at": "2026-11-11T22:57:44-0300",
+ "created_at": "2026-11-13T05:04:59-0300",
  "config": {
   "vocab_size": 512,
   "block_size": 128,
@@ -42,10 +42,10 @@
    "sha256": "b5dcef0f92ae6f127389d0b7a8279eeafb0ab2e00f7f54c755414e927777284b"
   },
   "testvec.f16.json": {
-   "bytes": 40612,
-   "gzip": 14079,
-   "brotli": 10747,
-   "sha256": "4c67a707489f4cec7890eb39d41d457fe5a2863ea8f7003ad49f8807862d425d"
+   "bytes": 60944,
+   "gzip": 20293,
+   "brotli": 15561,
+   "sha256": "f01637a1ccd83afec4a6fb0decd5ea59ded54144d5680770661fa36516260fd5"
   },
   "model.i8.bin": {
    "bytes": 91172,
@@ -54,10 +54,10 @@
    "sha256": "b9d9a170a4ef9c097e4a9f3b32d3e7ae2c330f1269876071fc364db01c28ebe4"
   },
   "testvec.i8.json": {
-   "bytes": 40641,
-   "gzip": 14033,
-   "brotli": 10725,
-   "sha256": "b01a3625e39283e82efd4110bbaa21a314966878cf18e929d9c4f6dbcbb6faea"
+   "bytes": 61036,
+   "gzip": 20368,
+   "brotli": 15505,
+   "sha256": "4940b0f3eb1eb1173f5ed88066a59087dbe19a699dd5e21d102b8a5fe97c3c8b"
   },
   "tokenizer.json": {
    "bytes": 2530,
@@ -66,22 +66,22 @@
    "sha256": "1b7acf8ef7f9ff6f6a1fb641586f6e48aeff5ea14ac16954e99815382bdb92db"
   },
   "retrieval.json": {
-   "bytes": 81771,
-   "gzip": 24368,
-   "brotli": 20276,
-   "sha256": "08f829714a4d3ded23534bd4ab85727fea934bfb98fea15186b8a61af186e861"
+   "bytes": 86924,
+   "gzip": 28020,
+   "brotli": 22867,
+   "sha256": "821097ccac04fd7f1e6c0eecc8ec615bee986867d87b168aa9fb6bd20a3020ad"
   },
   "parity.json": {
-   "bytes": 200342,
-   "gzip": 22511,
-   "brotli": 16793,
-   "sha256": "6decd8bdd2fd319c0f1a81719428ef683c8821e6e57d283d92d5880e669911b5"
+   "bytes": 318308,
+   "gzip": 42536,
+   "brotli": 31674,
+   "sha256": "ea4e761cd83f6308cd3db2375e9f54f564debac5d6301aeded34e4410154cc53"
   }
  },
  "quantisation": {
   "f16": {
    "mean_relative_weight_rmse": 0.000207,
-   "max_abs_logit_drift_vs_float32": 0.00088,
+   "max_abs_logit_drift_vs_float32": 0.00087,
    "greedy_identical_to_float32": "6/6"
   },
   "i8": {
@@ -89,5 +89,19 @@
    "max_abs_logit_drift_vs_float32": 0.03281,
    "greedy_identical_to_float32": "5/6"
   }
+ },
+ "dense_retrieval": {
+  "version": 1,
+  "dim": 48,
+  "pooling": "mean",
+  "weight": 1.0,
+  "max_tokens": 128,
+  "scale": 0.0044705938166520725,
+  "weights": "i8"
+ },
+ "decoding_prior": {
+  "kind": "score",
+  "weight": 6.0,
+  "fixed": 0.0
  }
 }

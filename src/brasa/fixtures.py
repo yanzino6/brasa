@@ -5,7 +5,8 @@ JavaScript (the browser). They must agree exactly, otherwise the model would be 
 trained on. This module records the Python answers; web/engine/tools/parity.mjs replays the same inputs
 through the JavaScript ports and compares.
 
-    parity.json = {"tokenizer": [...], "features": [...], "retrieval": [...], "prompt": [...]}
+    parity.json = {"tokenizer": [...], "features": [...], "retrieval": [...], "prompt": [...], "trie": [...],
+                   "dense": [...]}      (the last one only for an index that carries fact vectors)
 
 It is written into every export directory (export.py) and into tests/fixtures/tiny (scripts/make_fixtures.py).
 """
@@ -13,6 +14,7 @@ It is written into every export directory (export.py) and into tests/fixtures/ti
 from __future__ import annotations
 
 from .config import PromptConfig
+from .constrain import AnswerTrie
 from .data import add_noise, build_prompt
 from .retrieval import query_features
 from .tokenizer import BPETokenizer
@@ -98,6 +100,22 @@ def retrieval_cases(retriever, queries: list[str]) -> list[dict]:
     return cases
 
 
+def dense_cases(retriever, queries: list[str], embedder) -> list[dict]:
+    """Fused searches of an index with fact vectors: the vector of each question, as the Python encoder
+    computes it, and what the index returns for it. Given that vector the JavaScript port has to return
+    the same documents with the same scores, bit for bit (the dot products are integer sums)."""
+    cases = []
+    for i, q in enumerate(queries):
+        vector = [float(v) for v in embedder(q)]
+        searches = []
+        for k, lang in ((4, None), (8, ("pt", "en")[i % 2])):
+            hits = retriever.search(q, k, lang, vector)
+            searches.append({"k": k, "lang": lang,
+                             "hits": [{"id": h.id, "lang": h.lang, "score": h.score, "doc": h.doc} for h in hits]})
+        cases.append({"q": q, "vector": vector, "searches": searches})
+    return cases
+
+
 def prompt_cases(tok: BPETokenizer, retriever, questions: list[str], block_size: int, cfg: PromptConfig) -> list[dict]:
     cases = []
     for i, q in enumerate(questions):
@@ -109,9 +127,61 @@ def prompt_cases(tok: BPETokenizer, retriever, questions: list[str], block_size:
     return cases
 
 
+def trie_cases(tok: BPETokenizer, index: dict, n_docs: int = 3) -> list[dict]:
+    """Walks through the answer trie of a retrieval index, for every language setting.
+
+    Each walk feeds the ids of a text and records the allowed tokens before every step, up to the first
+    token that is not allowed (if any), and whether the whole text is an allowed answer. The last setting
+    gives the facts a prior, as the browser does with the retriever's ranking: its walks also record the
+    bias of every allowed token ("bias", one list per step)."""
+    cases = []
+    canonical = (index.get("answers") or {}).get("canonical", [])
+    fact_ids = list(dict.fromkeys(d["id"] for d in index["docs"]))
+    ranked = {f: -0.75 * i for i, f in enumerate(fact_ids[:4])}
+    # the settings after the third keep a few facts only (what the browser does with the facts it retrieved):
+    # the walks then include sentences of the knowledge base that are no longer allowed
+    settings = ((None, None, None, 0.0), ("pt", None, None, 0.0), ("en", None, None, 0.0),
+                (None, fact_ids[:2], None, 0.0), ("pt", fact_ids[1:2], None, 0.0), (None, fact_ids[:4], ranked, -0.5))
+    for lang, only, priors, fixed_prior in settings:
+        trie = AnswerTrie.from_index(index, tok, lang, only=None if only is None else set(only), priors=priors,
+                                     fixed_prior=fixed_prior)
+        docs = [d for d in index["docs"] if lang is None or d["lang"] == lang]
+        own = [d["text"] for d in docs[:n_docs]]
+        other = [d["text"] for d in index["docs"] if d["lang"] != (lang or docs[0]["lang"])][:1]
+        texts = own + [" ".join(own[:2]), " ".join(own), " ".join([*own, own[0]])]  # one, two, three, four facts
+        texts += [f"{own[0]} {t}" for t in other] + other  # a change of language; the other language alone
+        fixed = [c["text"] for c in canonical if lang is None or c["lang"] == lang][:2]
+        texts += fixed + [f"{t} {own[0]}" for t in fixed[:1]] + ["Uma frase que ninguém escreveu.", own[0][:-1]]
+        walks = []
+        for text in texts:
+            ids, state, allowed, bias = tok.encode(text), trie.start(), [], []
+            for t in ids:
+                allowed.append(trie.allowed(state))
+                bias.append(trie.bias(state))
+                if t not in allowed[-1] or t == trie.eos:
+                    break
+                state = trie.advance(state, t)
+            else:
+                allowed.append(trie.allowed(state))
+                bias.append(trie.bias(state))
+            walk = {"text": text, "ids": ids, "allowed": allowed, "accepts": trie.accepts(ids)}
+            if priors is not None:
+                walk["bias"] = bias
+            walks.append(walk)
+        d = trie.describe()
+        case = {"lang": lang, "only": only, "sentences": d["sentences"], "nodes": d["nodes"],
+                "max_sentences": d["max_sentences"], "walks": walks}
+        if priors is not None:
+            case.update(priors=priors, fixed_prior=fixed_prior)
+        cases.append(case)
+    return cases
+
+
 def build_parity(tok: BPETokenizer, retriever=None, dataset=None, block_size: int = 384,
-                 prompt_cfg: PromptConfig | None = None, n_dataset: int = 24) -> dict:
-    """All fixtures for one tokenizer / retrieval index. Deterministic."""
+                 prompt_cfg: PromptConfig | None = None, n_dataset: int = 24, embedder=None,
+                 n_dense: int = 24) -> dict:
+    """All fixtures for one tokenizer / retrieval index. Deterministic. embedder(question) -> vector adds
+    the fused searches of an index that carries fact vectors."""
     import random
 
     prompt_cfg = prompt_cfg or PromptConfig()
@@ -130,6 +200,10 @@ def build_parity(tok: BPETokenizer, retriever=None, dataset=None, block_size: in
     }
     if retriever is not None:
         out["retrieval"] = retrieval_cases(retriever, queries)
+        out["trie"] = trie_cases(tok, retriever.index)
+        if embedder is not None and getattr(retriever, "dense", None):
+            step = max(1, len(queries) // n_dense)
+            out["dense"] = dense_cases(retriever, queries[::step][:n_dense], embedder)
     long_question = "por favor me diga " * 40 + "onde ele mora?"
     out["prompt"] = prompt_cases(tok, retriever, [*queries[:12], long_question], block_size, prompt_cfg)
     return out
